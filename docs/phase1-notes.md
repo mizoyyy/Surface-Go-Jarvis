@@ -26,9 +26,13 @@
   | 0 | 80 | -57 dBFS | -47 dBFS |
   | 0 | 50 | -73 dBFS | -62 dBFS |
 
-- The default (boost 3) is unusable: it saturates. Set to **boost 1, capture 80** for now.
-  Needs a speech test at wall distance; a USB far-field mic may still be needed.
-- Persist with `sudo alsactl store`.
+- The default (boost 3) is unusable: it saturates. Set to **boost 1, capture 80**.
+- Speech test at wall distance (boost 1, capture 80): speech peaks -6 dBFS, no clipping,
+  noise floor -50 dBFS, speech around -29 dBFS. Both tiny.en q8_0 and base.en transcribed
+  "Hey Jarvis, set a timer for ten minutes. What's the weather like today?" exactly.
+  The built-in mic is good enough for now; no USB mic needed yet.
+- Opening the mic from suspend gives ~0.4 s of full-scale garbage. Keep the stream open, or drop
+  the first 0.5 s after opening it.
 
 ## Wi-Fi
 - Qualcomm Atheros QCA6174 (`ath10k_pci`), interface `wlp1s0`, 5 GHz-capable.
@@ -76,8 +80,11 @@
   | tiny.en q8_0 | 256 | 1.0 s | broken: truncated, then loops |
 
 - No F16C/AVX, so F16 weights are slow. Use **q8_0** (`whisper-quantize`, 43 MB).
-- `-ac` must cover the clip: about 50 per second of audio (1500 = 30 s). Size it per utterance
-  (for example `50 * seconds + 64`). A 3 s command should land around 1.5 s total.
+- `-ac` must cover the clip: about 50 per second of audio (1500 = 30 s), plus headroom.
+  On a real 4.6 s command, `-ac 256` and `300` repeated the whole sentence twice; `400` was clean
+  in 4.1 s. Use about `50 * seconds + 170`, and drop an exact repeat if one still appears.
+- tiny.en heard "set a time of 10 minutes" for "set a timer" on the trimmed clip. The LLM and
+  training data should tolerate that kind of slip.
 - 2 vs 4 threads makes almost no difference (2 physical cores).
 
 ## llama.cpp LLM (`~/jarvis/src/llama.cpp` @ 889f2ec, built in 33 min, `-march=native`)
