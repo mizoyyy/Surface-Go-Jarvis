@@ -3,7 +3,7 @@
 The model never sees this schema at runtime: it learns the tools from the training data,
 so the system prompt stays short (prompt processing is ~20 tokens/s on the tablet).
 The model answers with exactly one of:
-  - a tool call:   <tool_call>{"name": ..., "arguments": {...}}</tool_call>
+  - a tool call:   <tool_call>{"name":...,"arguments":{...}}</tool_call>
   - a short spoken reply (greetings, thanks, questions about Jarvis itself)
 Skills produce their own spoken confirmation, so there is no second LLM pass.
 """
@@ -18,7 +18,8 @@ DAYS = ["today", "tomorrow", "monday", "tuesday", "wednesday", "thursday", "frid
 TOOLS = {
     "get_time": {},
     "get_date": {},
-    "set_timer": {"seconds": "int, total duration", "label?": "str"},
+    # units copied from the request ("an hour and a half" -> hours 1, minutes 30); the skill adds them up
+    "set_timer": {"hours?": "int", "minutes?": "int", "seconds?": "int", "label?": "str"},
     "cancel_timer": {"label?": "str"},
     "timer_status": {},
     "set_alarm": {"time": "HH:MM, 24-hour", "day?": "one of DAYS"},
@@ -34,18 +35,60 @@ TOOLS = {
 }
 
 
+# Allowed values for enum-like arguments. Anything else is an invalid call.
+ENUMS = {
+    ("spotify_play", "kind"): {"track", "artist", "album", "playlist"},
+    ("media_control", "action"): {"pause", "resume", "next", "previous", "stop"},
+    ("change_volume", "direction"): {"up", "down"},
+    ("device_control", "action"): {"screen_off", "screen_on", "mute_mic", "night_mode_on", "night_mode_off"},
+    ("get_weather", "day"): set(DAYS),
+    ("calendar_events", "day"): set(DAYS),
+    ("set_alarm", "day"): set(DAYS),
+}
+TIMER_UNITS = ("hours", "minutes", "seconds")
+
+
 def tool_call(name, **arguments):
-    """The exact assistant text for a tool call. Keys are sorted so the format is stable."""
-    assert name in TOOLS, name
-    payload = {"name": name, "arguments": arguments}
-    return "<tool_call>" + json.dumps(payload, sort_keys=True, ensure_ascii=False) + "</tool_call>"
+    """The exact assistant text for a tool call.
+
+    The name comes first so the model picks the tool before filling in arguments;
+    arguments keep a fixed (sorted) order and the JSON has no spaces, to keep generation short.
+    """
+    assert validate(name, arguments), (name, arguments)
+    body = json.dumps(dict(sorted(arguments.items())), separators=(",", ":"), ensure_ascii=False)
+    return f'<tool_call>{{"name":"{name}","arguments":{body}}}</tool_call>'
+
+
+def validate(name, arguments):
+    """True when the tool exists and every argument is known, required ones present, enums valid."""
+    if name not in TOOLS or not isinstance(arguments, dict):
+        return False
+    spec = TOOLS[name]
+    known = {k.rstrip("?") for k in spec}
+    required = {k for k in spec if not k.endswith("?")}
+    if not required <= arguments.keys() or not arguments.keys() <= known:
+        return False
+    for key, value in arguments.items():
+        allowed = ENUMS.get((name, key))
+        if allowed is not None and value not in allowed:
+            return False
+        if name == "set_timer" and key in TIMER_UNITS and not (isinstance(value, int) and value >= 0):
+            return False
+    if name == "set_timer" and timer_seconds(arguments) <= 0:
+        return False
+    return True
+
+
+def timer_seconds(arguments):
+    return (arguments.get("hours", 0) * 3600 + arguments.get("minutes", 0) * 60
+            + arguments.get("seconds", 0))
 
 
 def parse_reply(text):
     """Turn model output into ("tool", name, arguments) or ("say", text, None).
 
     Returns ("invalid", text, None) when a tool call is present but is not valid JSON
-    or names an unknown tool.
+    or fails validate().
     """
     text = text.strip()
     start = text.find("<tool_call>")
@@ -58,7 +101,7 @@ def parse_reply(text):
         name, arguments = payload["name"], payload.get("arguments", {})
     except (ValueError, KeyError, TypeError):
         return ("invalid", text, None)
-    if name not in TOOLS or not isinstance(arguments, dict):
+    if not validate(name, arguments):
         return ("invalid", text, None)
     return ("tool", name, arguments)
 
