@@ -1,0 +1,15 @@
+# Sets the internal mic to levels that do not clip (see docs/phase1-notes.md).
+# WirePlumber resets the ALC298 boost to max at login, so this runs after it.
+[Unit]
+Description=Jarvis: set internal mic levels
+After=wireplumber.service pipewire-pulse.service
+Wants=wireplumber.service
+
+[Service]
+Type=oneshot
+ExecStartPre=/bin/sleep 5
+ExecStart=/usr/bin/amixer -q -c0 sset 'Internal Mic Boost' 1
+ExecStart=/usr/bin/amixer -q -c0 sset Capture 80
+
+[Install]
+WantedBy=default.target

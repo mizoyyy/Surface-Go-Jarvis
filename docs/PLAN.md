@@ -5,16 +5,18 @@
 - [ ] Claude GitHub App installed on the repo (so changes can be pushed)
 
 ## Phase 1: Prepare the tablet
-- [ ] linux-surface kernel, disable Wi-Fi power saving
+- [x] linux-surface kernel, disable Wi-Fi power saving
 - [ ] Audio check: built-in mics and speakers (consider USB far-field mic)
-- [ ] Battery care for always-plugged-in use
-- [ ] Python env, build tools, llama.cpp, whisper.cpp, Piper
+      (levels fixed, see docs/phase1-notes.md; speech test at wall distance still to do)
+- [ ] Battery care for always-plugged-in use (enable Battery Limit in Surface UEFI)
+- [x] Python env, build tools, llama.cpp, whisper.cpp, Piper (benchmarks in docs/phase1-notes.md)
+- [x] Power profile set to `performance` (power-saver made everything 3x slower)
 
 ## Phase 2: Model (GitHub + Colab)
 - [ ] Dataset: Jarvis persona + tool-calling examples
 - [ ] LoRA fine-tune of a ~0.5B open model
 - [ ] Eval set and scoring
-- [ ] Quantize to GGUF Q4, publish as GitHub Release
+- [ ] Quantize to GGUF **Q4_0** (Q4_K_M is 7x slower on this no-AVX CPU), publish as GitHub Release
 
 ## Phase 3: Voice pipeline
 - [ ] "Hey Jarvis" wake word, VAD, STT, TTS
