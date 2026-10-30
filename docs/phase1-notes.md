@@ -55,6 +55,11 @@
   Set to `performance` with `powerprofilesctl set performance` (no sudo). The wall unit is always
   on AC, so keep it there; check it survives reboots.
 
+- **Mouse cursor was invisible** on the surface kernel (it still worked). Not the Wacom driver
+  (disabling touch and pen didn't help), no i915 errors in the log. Fixed by drawing the cursor in
+  software: `/etc/X11/xorg.conf.d/20-swcursor.conf` with `Option "SWcursor" "on"` for
+  `modesetting`, then log out and in. Undo by deleting that file.
+
 ## Piper TTS (venv `~/jarvis/venv`, piper-tts 1.8.0, onnxruntime 1.31.1)
 - onnxruntime works on this no-AVX CPU.
 - Voices in `~/jarvis/models/piper/`. Benchmarks with the `performance` profile, voice preloaded:
