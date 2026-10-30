@@ -34,5 +34,37 @@ in training, so it measures generalisation.
    ```
 3. If it scores well, publish it as a GitHub Release (`gh release create model-v1 ...`).
 
-## Baseline (untuned Qwen2.5-0.5B Q4_0 on the tablet, first 12 rows of eval_real)
-0% exact: it chats instead of calling tools. Median latency 2.4 s (prompt 0.8 s, generation 1.7 s).
+## Results
+
+### Baseline (untuned Qwen2.5-0.5B)
+- Colab: 8% exact on `eval`, 12.5% on `eval_real` (only small talk passes).
+- Tablet, Q4_0, first 12 rows of `eval_real`: 0% exact, it chats instead of calling tools.
+
+### v1 (2026-10-30): LoRA r=16, 2 epochs, 4000 rows, 3.5 min on a T4
+Final train loss 0.004, validation loss 0.0073 (still falling, no overfitting).
+
+| Set | Where | Exact | Tool name | Invalid |
+|---|---|---|---|---|
+| `eval` (400) | Colab, full precision | 89.5% | 93.8% | 2.5% |
+| `eval` (first 120) | Tablet, Q4_0 | 89.2% | | |
+| `eval_real` (40) | Colab, full precision | 95% | 100% | 0% |
+| `eval_real` (40) | Tablet, Q4_0 | 95% | 100% | 0% |
+
+- Q4_0 loses essentially nothing. File size 352 MB.
+- Tablet latency (2 threads, prompt cached): median 3.5 s per request
+  (prompt 0.7 s, generation 2.7 to 2.9 s), max 8.4 s.
+- Weak intents on `eval`: media next/previous/stop, never_mind, get_weather, get_date.
+
+What goes wrong, in order of importance:
+1. **Timer arithmetic**: "two hours" became 120 s, "10 minutes and 30 seconds" 90 s,
+   "twenty minutes" 120 s. The model has to convert to seconds and gets it wrong.
+   Fix for v2: let it copy the numbers (`{"hours": 2}`, `{"minutes": 10, "seconds": 30}`)
+   and let the skill add them up.
+2. Invented arguments or values: `get_date` with a `day`, `media_control` action `skip`,
+   `device_control` action `reset`, `spotify_play` kind `list`.
+3. Rare phrasings: "the song before" played a track; "sorry wrong button" became a tool call.
+4. Harmless: "Lisboa" for Lisbon, "Kuwait" for Kuwait City, a trimmed `ask_cloud` question.
+
+Ideas for v2: unit-based timer arguments, more examples for the weak intents, and
+validating arguments against `TOOLS` at runtime (treat an unknown value as `ask_cloud`).
+A shorter output format would also cut generation time (most of the 3.5 s).
