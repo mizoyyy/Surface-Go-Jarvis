@@ -14,7 +14,8 @@
 
 ## Phase 2: Model (GitHub + Colab)
 - [x] Dataset: Jarvis persona + tool-calling examples (training/generate_dataset.py, 4000 train rows)
-- [ ] LoRA fine-tune of a ~0.5B open model (notebook ready: training/finetune_colab.ipynb, not run yet)
+- [x] LoRA fine-tune of a ~0.5B open model (v1: 89.5% held-out, 95% hand-written; see training/README.md)
+- [ ] v2: unit-based timer arguments, more data for weak intents
 - [x] Eval set and scoring (held-out eval split, hand-written eval_real, score.py, eval_gguf.py)
 - [ ] Quantize to GGUF **Q4_0** (Q4_K_M is 7x slower on this no-AVX CPU), publish as GitHub Release
 
