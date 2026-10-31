@@ -173,3 +173,6 @@ body.night #caption, body.night footer, body.night .w-weather .days { opacity: 0
   main { grid-template-columns: 1fr; overflow-y: auto; }
   #center { order: -1; }
 }
+
+/* wall display: touch only, no mouse cursor */
+.kiosk, .kiosk * { cursor: none !important; }

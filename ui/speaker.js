@@ -9,6 +9,9 @@ const Speaker = (() => {
     if (wanted) localStorage.setItem("jarvis-speaker", "1");
     else wanted = localStorage.getItem("jarvis-speaker") === "1";
   } catch {}
+  // the same window is the wall display: no mouse cursor there (on the touchscreen Chrome kept
+  // showing and hiding it, so it flickered over the animated logo)
+  if (wanted) document.documentElement.classList.add("kiosk");
   let player = null;
   let sdkReady = false;
   let status = {};
