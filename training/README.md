@@ -8,7 +8,7 @@ short reply. Training runs on Colab; the result is a Q4_0 GGUF for llama.cpp on 
   so there is no second LLM pass (each pass costs seconds on the tablet).
 - The tool list is not in the prompt: the model learns it from the data. The prompt is 42 tokens
   and llama-server caches it, so prompt processing is under a second.
-- Output format: `<tool_call>{"arguments": {...}, "name": "..."}</tool_call>` or plain text.
+- Output format: `<tool_call>{"name":"...","arguments":{...}}</tool_call>` or plain text.
   The schema, prompt and parser live in [tools.py](tools.py).
 - Export **Q4_0**. Q4_K_M is 7x slower on the tablet's no-AVX CPU (see docs/phase1-notes.md).
 
@@ -68,3 +68,31 @@ What goes wrong, in order of importance:
 Ideas for v2: unit-based timer arguments, more examples for the weak intents, and
 validating arguments against `TOOLS` at runtime (treat an unknown value as `ask_cloud`).
 A shorter output format would also cut generation time (most of the 3.5 s).
+
+### v2 (2026-10-31): unit-based timers, 6000 rows, LoRA r=16, 3 epochs, 1125 steps
+Timers now copy the units from the request (`{"hours": 1, "minutes": 30}`) and the skill adds
+them up. More training data for the weak intents. Replies are shorter (17.7 tokens on average, was 22.3).
+`eval_real` has 44 rows (4 new timer cases).
+
+| Set | Where | Exact | Tool name | Invalid |
+|---|---|---|---|---|
+| `eval` (400) | Colab, full precision | 95.5% | 96.0% | 3.0% |
+| `eval` (first 120) | Tablet, Q4_0 | 95.0% | 97.5% | 1.7% |
+| `eval_real` (44) | Colab, full precision | 95.5% | 97.7% | 2.3% |
+| `eval_real` (44) | Tablet, Q4_0 | 95.5% | 97.7% | 2.3% |
+
+- Every timer request is now right, including "two hours" and "10 minutes and 30 seconds".
+- Tablet latency: median 3.4 s (prompt 0.8 to 0.9 s, generation 2.35 to 2.5 s), max 6.9 s.
+- A first v2 run (same data) scored 94.0% on `eval` with 0% invalid; its runtime was recycled
+  before the file was saved, so this is a rerun. Training is not bit-for-bit repeatable on Colab.
+
+What still goes wrong:
+1. "it's too loud" turns the volume up. "turn off tomorrow's alarm" adds a `day` that
+   `cancel_alarm` does not take (invalid call).
+2. "shuffle X" (only in held-out phrasings): the playlist "study music" becomes "study",
+   the artist Muse becomes a track.
+3. Rare phrasings: "how late is it" asks for the weather, "don't listen for a while" sets a
+   timer, "what time is sunset in tokyo" calls `get_weather` with day "sunset" (invalid).
+
+Ideas for v3: "too loud / too quiet" and "shuffle" examples, `cancel_alarm` with a day, and
+runtime validation: an invalid call falls back to `ask_cloud` with the user's words.
