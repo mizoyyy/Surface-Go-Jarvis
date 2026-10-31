@@ -14,10 +14,12 @@ SYSTEM = (
     "You are Jarvis, a voice assistant on a wall-mounted tablet in the user's home in {place}. "
     "Your answer is read aloud by a text-to-speech voice, so reply in one to three short, plain "
     "sentences: no markdown, lists, symbols, URLs or emoji. Write numbers and units the way "
-    "they are spoken. If the request is unclear, ask one short question back."
+    "they are spoken. Answer in this one reply: don't offer to say more, and don't say you will "
+    "look something up later. If it needs live information you can't search for, say so briefly."
 )
 KEY_NAMES = {"gemini": "gemini_api_key", "claude": "anthropic_api_key"}
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+GEMINI_FAST = "gemini-flash-lite-latest"
 OFFLINE = "Sorry, I can't answer that offline."
 
 
@@ -48,18 +50,27 @@ def ask_cloud(question):
 
 
 def ask_gemini(cloud, system, prompt, question):
-    body = {
-        "system_instruction": {"parts": [{"text": system}]},
-        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-        "generationConfig": {"maxOutputTokens": 2048},
-    }
-    if cloud.get("web_search"):
-        body["tools"] = [{"google_search": {}}]
-    try:
-        r = httpx.post(GEMINI_URL.format(model=cloud.get("model", "gemini-flash-latest")), json=body,
-                       headers={"x-goog-api-key": api_key("gemini")}, timeout=30)
-    except httpx.HTTPError:
-        return "I can't reach the internet right now."
+    model = cloud.get("model", GEMINI_FAST)
+    search = cloud.get("web_search")
+    for _ in range(3):
+        body = {
+            "system_instruction": {"parts": [{"text": system}]},
+            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+            "generationConfig": {"maxOutputTokens": 2048},
+        }
+        if search:
+            body["tools"] = [{"google_search": {}}]
+        try:
+            r = httpx.post(GEMINI_URL.format(model=model), json=body,
+                           headers={"x-goog-api-key": api_key("gemini")}, timeout=30)
+        except httpx.HTTPError:
+            return "I can't reach the internet right now."
+        if r.status_code == 429 and search:
+            search = False  # Google Search grounding isn't in every free quota: answer without it
+        elif r.status_code == 503 and model != GEMINI_FAST:
+            model = GEMINI_FAST  # the bigger models are often "experiencing high demand"
+        else:
+            break
     if r.status_code == 429:  # the free tier's per-minute or per-day limit
         return wikipedia(question) or "I've hit the free limit for online answers. Try again later."
     if r.status_code in (401, 403) or r.status_code == 400 and "API_KEY" in r.text:
@@ -71,7 +82,20 @@ def ask_gemini(cloud, system, prompt, question):
         return "Sorry, I can't help with that one."
     parts = candidates[0].get("content", {}).get("parts", [])
     text = " ".join(p["text"] for p in parts if p.get("text") and not p.get("thought")).strip()
-    return text or "Sorry, I didn't get an answer."
+    return speakable(text) or "Sorry, I didn't get an answer."
+
+
+def speakable(text):
+    """Math and markdown the voice would read out symbol by symbol: $KE = \\frac{1}{2}mv^2$."""
+    text = re.sub(r"\\frac\{1\}\{2\}\s*", "one half ", text)
+    text = re.sub(r"\\frac\{([^{}]*)\}\{([^{}]*)\}", r"\1 over \2", text)
+    text = re.sub(r"\s*=\s*", " equals ", text)
+    text = re.sub(r"\^\{?2\}?", " squared", text)
+    text = re.sub(r"\^\{?3\}?", " cubed", text)
+    text = re.sub(r"\^\{?([^{}\s]+)\}?", r" to the power of \1", text)
+    text = re.sub(r"\\(cdot|times)", " times ", text)
+    text = re.sub(r"\\[a-zA-Z]+|[$*_#`{}]", "", text)
+    return " ".join(text.split())
 
 
 def ask_claude(cloud, system, prompt, question):

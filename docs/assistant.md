@@ -42,9 +42,11 @@ The kiosk starts at login from `~/.config/autostart/jarvis-kiosk.desktop`.
 - Model: ~3.5 s for a tool call. Total from end of speech to answer: about 6 s on the model path.
 
 ## Accounts (from the settings screen)
-- **Online answers**: by default Gemini Flash, with a free API key from aistudio.google.com (free tier
-  limits apply, and Google may use free-tier prompts to improve its products), web search through
-  Google Search grounding. Picking a Claude model in the list switches to Claude (paid key from
+- **Online answers**: by default Gemini Flash Lite (about 1.5 s per answer), with a free API key from
+  aistudio.google.com (free tier limits apply, and Google may use free-tier prompts to improve its
+  products). Google Search grounding was not in the free quota when tested (429), so Jarvis retries
+  without it; Gemini Flash was 11 to 16 s or overloaded (503), and falls back to Flash Lite. LaTeX in
+  answers ("$\\frac{1}{2}mv^2$") is turned into words before it is spoken. Picking a Claude model in the list switches to Claude (paid key from
   console.anthropic.com, low effort, server-side refusal fallback). Each provider keeps its own key.
   With no key, "what is / who is" questions get the first two sentences of the Wikipedia article.
 - **Calendar**: the private iCal link of a Google (or any) calendar.
