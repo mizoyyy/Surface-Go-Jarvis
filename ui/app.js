@@ -76,6 +76,7 @@ function handle({ type, data }) {
     case "calendar": S.calendar = data; renderWidget("calendar"); break;
     case "music": S.music = data; renderWidget("music"); break;
     case "prayers": S.prayers = data; renderWidget("prayer"); break;
+    case "battery": S.status.battery = data; renderBattery(); break;
     case "night": applyNight(data); break;
     case "mic_muted": S.mic_muted = data; renderStatus(); break;
     case "ringing": data ? showRing(data) : hideRing(); break;
@@ -125,6 +126,18 @@ function renderStatus() {
   const cloudOn = S.status.cloud_key && S.settings.cloud?.enabled;
   cloud.className = "chip " + (cloudOn ? "on" : "");
   cloud.innerHTML = ICON.cloud + (cloudOn ? "Online" : "Offline only");
+  renderBattery();
+}
+
+function renderBattery() {
+  const b = S.status.battery, el = $("#st-battery");
+  el.classList.toggle("hidden", !b);
+  if (!b) return;
+  const fill = Math.max(1, Math.round(14 * b.percent / 100));
+  const bolt = b.charging ? '<path d="M11.5 8.5 9.5 12h3l-2 3.5" stroke="var(--bg, #000)" stroke-width="1.6"/>' : "";
+  el.classList.toggle("low", b.percent < 20 && !b.charging);
+  el.innerHTML = svg(`<rect x="2.5" y="7" width="17" height="10" rx="2.2"/><path d="M21.5 10.5v3"/>` +
+    `<rect x="4" y="8.5" width="${fill}" height="7" rx="1" fill="currentColor" stroke="none"/>${bolt}`) + `${b.percent}%`;
 }
 
 function applyNight(on) {

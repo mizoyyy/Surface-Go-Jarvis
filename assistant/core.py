@@ -91,7 +91,7 @@ class Jarvis:
             "settings": public,
             "status": {"cloud_key": bool(cloud.api_key()), "spotify_connected": self.spotify.connected,
                        "spotify_can_stream": self.spotify.can_stream,
-                       "volume": system.get_volume()},
+                       "volume": system.get_volume(), "battery": system.battery()},
         }
 
     def add_transcript(self, who, text):
@@ -110,6 +110,7 @@ class Jarvis:
         loop.create_task(self._every(1, self._tick))
         loop.create_task(self._every(60, self._night_check))
         loop.create_task(self._every(60, self._refresh_prayers))
+        loop.create_task(self._every(60, lambda: self.emit("battery", system.battery())))
         loop.create_task(self._every(900, self._refresh_weather))
         loop.create_task(self._every(900, self._refresh_calendar))
         loop.create_task(self._every(5, self._refresh_music))

@@ -47,3 +47,19 @@ def stop_jarvis():
     close_display()
     subprocess.Popen(["systemctl", "--user", "--no-block", "stop", "jarvis.service", "jarvis-llm.service"])
 
+
+def battery():
+    """{"percent": 47, "charging": True} for the tablet's own battery (not the pen's), or None."""
+    import glob
+    for folder in sorted(glob.glob("/sys/class/power_supply/BAT*")):
+        try:
+            with open(folder + "/capacity") as f:
+                percent = int(f.read())
+            with open(folder + "/status") as f:
+                status = f.read().strip()
+        except (OSError, ValueError):
+            continue
+        # "Not charging" while plugged in: the Surface holds the battery at its limit
+        return {"percent": percent, "charging": status in ("Charging", "Full", "Not charging")}
+    return None
+
