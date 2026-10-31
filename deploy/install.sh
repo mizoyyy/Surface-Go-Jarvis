@@ -14,10 +14,9 @@ done
 
 mkdir -p "$UNITS" "$HOME/.config/autostart"
 # speech to text now runs inside the assistant (Moonshine): retire the old whisper-server unit
-if [ -e "$UNITS/jarvis-stt.service" ] || [ -L "$UNITS/jarvis-stt.service" ]; then
-    systemctl --user disable --now jarvis-stt 2>/dev/null || true
-    rm -f "$UNITS/jarvis-stt.service"
-fi
+# (stop works from memory even when the unit file is already a dangling link; disable doesn't)
+systemctl --user stop jarvis-stt 2>/dev/null || true
+rm -f "$UNITS/jarvis-stt.service" "$UNITS/default.target.wants/jarvis-stt.service"
 for unit in jarvis-llm jarvis-mic-levels; do
     ln -sf "$REPO/deploy/systemd/$unit.service" "$UNITS/$unit.service"
 done
