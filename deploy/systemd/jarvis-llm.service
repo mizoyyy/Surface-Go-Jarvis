@@ -1,0 +1,10 @@
+[Unit]
+Description=Jarvis local model (llama-server)
+
+[Service]
+ExecStart=%h/jarvis/src/llama.cpp/build/bin/llama-server -m %h/jarvis/models/llm/jarvis-0.5b-v2-q4_0.gguf -t 2 -c 1024 -np 1 --host 127.0.0.1 --port 8091
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
