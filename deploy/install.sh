@@ -35,5 +35,23 @@ Exec=$REPO/deploy/kiosk/jarvis-kiosk.sh
 X-GNOME-Autostart-enabled=true
 EOF
 
+# desktop and menu shortcut: starts Jarvis if needed, opens or brings back the wall display
+chmod +x "$REPO/deploy/kiosk/open-jarvis.sh"
+DESKTOP=$(xdg-user-dir DESKTOP 2>/dev/null || echo "$HOME/Desktop")
+mkdir -p "$HOME/.local/share/applications" "$DESKTOP"
+cat > "$HOME/.local/share/applications/jarvis.desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=Jarvis
+Comment=Open the Jarvis wall display
+Exec=$REPO/deploy/kiosk/open-jarvis.sh
+Icon=audio-input-microphone
+Terminal=false
+Categories=Utility;
+EOF
+cp "$HOME/.local/share/applications/jarvis.desktop" "$DESKTOP/Jarvis.desktop"
+chmod +x "$DESKTOP/Jarvis.desktop"
+gio set "$DESKTOP/Jarvis.desktop" metadata::trusted true 2>/dev/null || true
+
 echo "Installed. Logs: journalctl --user -u jarvis -f"
-echo "The kiosk opens at the next login, or now with: $REPO/deploy/kiosk/jarvis-kiosk.sh &"
+echo "Open the wall display with the Jarvis icon on the desktop or in the menu."
