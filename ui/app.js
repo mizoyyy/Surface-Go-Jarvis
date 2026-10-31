@@ -58,6 +58,7 @@ function connect() {
 function handle({ type, data }) {
   switch (type) {
     case "snapshot":
+      window.Speaker?.update(data.status);
       if (S.started && S.started !== data.started) return location.reload(); // Jarvis restarted, maybe with new code
       Object.assign(S, data);
       applyNight(data.night);
@@ -79,7 +80,7 @@ function handle({ type, data }) {
     case "ringing": data ? showRing(data) : hideRing(); break;
     case "settings": S.settings = data; renderAll(); fillSettings(); break;
     case "show_settings": if (data) fillSettings(); $("#settings").classList.toggle("hidden", !data); break;
-    case "status": S.status = data; renderStatus(); fillSettings(); break;
+    case "status": S.status = data; renderStatus(); fillSettings(); window.Speaker?.update(data); break;
   }
 }
 
@@ -309,7 +310,8 @@ function fillSettings() {
   if (document.activeElement !== $("#cal-url")) $("#cal-url").value = s.calendar_ics_url;
   if (document.activeElement !== $("#sp-client")) $("#sp-client").value = s.spotify.client_id;
   if (document.activeElement !== $("#sp-device")) $("#sp-device").value = s.spotify.device_name;
-  $("#sp-status").textContent = S.status.spotify_connected ? "connected" : "not connected";
+  $("#sp-status").textContent = !S.status.spotify_connected ? "not connected"
+    : S.status.spotify_can_stream ? "connected" : "connected, press Connect again to play on this screen";
   renderWidgetList();
 }
 

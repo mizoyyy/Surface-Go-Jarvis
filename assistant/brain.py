@@ -36,7 +36,7 @@ QUESTION = re.compile(
     r"^(what|who|why|how|when|where|which|whose|explain|define|describe|tell me|find|search|look up|"
     r"using the|use the|do you know|can you tell me|calculate|translate|is|are|was|were|does|did)\b", re.I)
 LOCAL = re.compile(
-    r"\b(time|date|day|today|tonight|tomorrow|morning|timers?|alarms?|wake me|remind|weather|rain\w*|"
+    r"\b(time|date|day|today|tonight|tomorrow|morning|timers?|alarms?|wake me|remind|weather|rain(s|y|ing|fall)?|"
     r"temperature|hot|cold|sunny|cloudy|forecast|wind\w*|humid\w*|umbrella|calendar|schedule|meetings?|"
     r"appointments?|events?|agenda|busy|play\w*|music|songs?|tracks?|album|artist|spotify|pause|resume|"
     r"skip|volume|louder|quieter|mute|screen|night mode|mic|microphone|you|your|yourself|jarvis|my|i|our)\b", re.I)

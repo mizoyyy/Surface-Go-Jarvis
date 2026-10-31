@@ -52,11 +52,18 @@ The kiosk starts at login from `~/.config/autostart/jarvis-kiosk.desktop`.
 - **Calendar**: the private iCal link of a Google (or any) calendar.
 - **Spotify** (Premium): an app at developer.spotify.com with redirect URI
   `http://127.0.0.1:8000/spotify/callback`; paste its Client ID, press Connect. Playback goes to the
-  device named in the settings, else the active one. For playback on the tablet itself, install
-  spotifyd and name it here.
+  device named in the settings ("Jarvis" by default), else the active one.
+- **Spotify player on the tablet**: the wall display itself is the Spotify Connect speaker "Jarvis",
+  through Spotify's Web Playback SDK (Chrome plays the protected audio; Premium only). It needs the
+  `streaming` permission, so connections made before it was added must press Connect again.
+  spotifyd and other librespot players were tried and no longer work: Spotify refuses them the
+  audio keys ("audio key error", librespot-org/librespot#1649).
 
 ## Using it
 - Say "Hey Jarvis", wait for the chime, then the request. Or tap the logo to talk.
+- "Hey Jarvis" (or a tap) at any time stops what Jarvis is saying or working on and pauses the
+  music. While Jarvis is talking, the wake word needs a score of 0.8, so its own voice doesn't
+  trigger it.
 - Tap the logo while a timer rings to stop it, or say "stop".
 - "Turn off the microphone" mutes it; tap the logo to turn it back on.
 - Settings (gear icon): location, units, widgets and their order, volume, wake sensitivity, night

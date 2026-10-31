@@ -7,7 +7,9 @@ named in the settings (for example spotifyd on this tablet), else the active dev
 """
 
 import base64
+import difflib
 import hashlib
+import re
 import secrets as pysecrets
 import time
 import urllib.parse
@@ -17,8 +19,31 @@ import httpx
 from .. import config
 
 REDIRECT = f"http://127.0.0.1:{config.UI_PORT}/spotify/callback"
-SCOPES = "user-read-playback-state user-modify-playback-state user-read-currently-playing"
+# streaming, email and private: the Web Playback SDK that makes the wall display a speaker
+SCOPES = ("user-read-playback-state user-modify-playback-state user-read-currently-playing "
+          "streaming user-read-email user-read-private")
 API = "https://api.spotify.com/v1"
+
+
+def _words(text):
+    return re.findall(r"[a-z0-9']+", text.lower())
+
+
+def best_match(query, items):
+    """Spotify's first hit for "void the neighborhood" was "The Void" by Liam's Neighborhood:
+    prefer the result whose name and artist words are all in the request (spelling may differ
+    a little, "neighborhood" / "neighbourhood"), then the more popular one."""
+    asked = _words(query)
+
+    def heard(word):
+        return any(difflib.SequenceMatcher(None, word, a).ratio() >= 0.85 for a in asked)
+
+    def score(item):
+        names = [item["name"]] + [a["name"] for a in item.get("artists", [])]
+        words = [w for name in names for w in _words(name)]
+        covered = sum(heard(w) for w in words) / max(1, len(words))
+        return covered + item.get("popularity", 0) / 1000
+    return max(items, key=score)
 
 
 class NotConnected(Exception):
@@ -36,6 +61,15 @@ class Spotify:
     @property
     def connected(self):
         return bool(config.secrets.get("spotify", {}).get("refresh_token"))
+
+    @property
+    def can_stream(self):
+        """False for connections made before the screen became a speaker: press Connect again."""
+        return "streaming" in config.secrets.get("spotify", {}).get("scope", "").split()
+
+    def player_token(self):
+        """A fresh access token for the Web Playback SDK in the wall UI."""
+        return self._access_token()
 
     # login
 
@@ -60,7 +94,8 @@ class Spotify:
         saved = config.secrets.get("spotify", {})
         config.secrets.update({"spotify": {
             "access_token": tok["access_token"], "expires": time.time() + tok["expires_in"] - 60,
-            "refresh_token": tok.get("refresh_token") or saved.get("refresh_token", "")}})
+            "refresh_token": tok.get("refresh_token") or saved.get("refresh_token", ""),
+            "scope": tok.get("scope") or saved.get("scope", "")}})
 
     def _access_token(self):
         saved = config.secrets.get("spotify", {})
@@ -76,7 +111,10 @@ class Spotify:
                           headers={"Authorization": f"Bearer {self._access_token()}"}, **kwargs)
         if r.status_code == 204 or not r.content:
             return r.status_code, None
-        return r.status_code, r.json()
+        try:
+            return r.status_code, r.json()
+        except ValueError:  # play / pause / next sometimes answer 200 with a non-JSON body
+            return r.status_code, None
 
     # playback
 
@@ -93,12 +131,11 @@ class Spotify:
         return devices[0]["id"] if devices else None
 
     def play(self, query, kind):
-        _, found = self._call("GET", "/search", params={"q": query, "type": kind, "limit": 1})
-        items = (found or {}).get(kind + "s", {}).get("items", [])
-        items = [i for i in items if i]
+        _, found = self._call("GET", "/search", params={"q": query, "type": kind, "limit": 10})
+        items = [i for i in (found or {}).get(kind + "s", {}).get("items", []) if i]
         if not items:
             return f"I couldn't find {query} on Spotify."
-        item = items[0]
+        item = best_match(query, items)
         device = self._device()
         if not device:
             return "I can't find a Spotify device to play on."

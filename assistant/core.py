@@ -37,6 +37,8 @@ class Jarvis:
         self.night_override = None  # set by voice / UI until the next scheduled switch
         self.screen_off = False
         self.listen_request = False  # tap on the logo: listen without the wake word
+        self.generation = 0  # bumped by every wake: a request from an older one is dropped
+        self.current = 0  # the generation the request being handled started in
         self.ringing = None
         self.transcript = []
         self.weather = None
@@ -83,6 +85,7 @@ class Jarvis:
             "transcript": self.transcript[-6:], "ringing": self.ringing,
             "settings": public,
             "status": {"cloud_key": bool(cloud.api_key()), "spotify_connected": self.spotify.connected,
+                       "spotify_can_stream": self.spotify.can_stream,
                        "volume": system.get_volume()},
         }
 
@@ -165,10 +168,13 @@ class Jarvis:
                     cooldown -= 1
                     continue
                 tapped, self.listen_request = self.listen_request, False
-                if self.mic_muted or self.state == "thinking" or (speaking and not tapped):
+                if self.mic_muted:
                     continue
-                if tapped or score >= config.settings.get("wake_threshold", 0.5):
-                    log.info("tap to talk" if tapped else "wake word (%.2f)", score)
+                threshold = config.settings.get("wake_threshold", 0.5)
+                if speaking:  # its own voice in the mic: only a clear "hey jarvis" interrupts
+                    threshold = max(threshold, 0.8)
+                if tapped or score >= threshold:
+                    log.info("tap to talk (%.2f)" if tapped else "wake word (%.2f)", score)
                     self.on_wake()
                     endpoint.reset()
                     recording = True
@@ -176,11 +182,23 @@ class Jarvis:
             mic.close()
 
     def on_wake(self):
+        """Wake word or tap: drop whatever Jarvis was doing, pause the music, listen."""
+        self.generation += 1
         if self.screen_off:
             self.device_control("screen_on", quiet=True)
-        self.player.stop()  # cut off a ringing chime or a long answer
+        self.voice.stop()  # cuts off an answer or a ringing chime mid-sound
+        if self.music and self.music.get("playing"):
+            self.music = dict(self.music, playing=False)
+            self.emit("music", self.music)
+            threading.Thread(target=self._pause_music, daemon=True).start()
         self.set_state("listening")
         threading.Thread(target=self.voice.play, args=(self.chime,), daemon=True).start()
+
+    def _pause_music(self):
+        try:
+            self.spotify.control("pause")
+        except Exception as e:
+            log.warning("pause on wake failed: %s", e)
 
     # requests
 
@@ -190,12 +208,18 @@ class Jarvis:
     def _worker(self):
         while True:
             kind, payload = self.requests.get()
+            self.current = self.generation
             try:
                 self._handle(kind, payload)
             except Exception:
                 log.error("request failed:\n%s", traceback.format_exc())
                 self._say("Sorry, something went wrong.")
-            self.set_state("idle")
+            if not self.interrupted():  # else the new request is already listening
+                self.set_state("idle")
+
+    def interrupted(self):
+        """True once the wake word was heard again after this request started."""
+        return self.generation != self.current
 
     def _handle(self, kind, payload):
         self.set_state("thinking")
@@ -206,6 +230,8 @@ class Jarvis:
             log.info("heard %r (%.1fs of audio, stt %.1fs)", text, len(payload) / audio.RATE, time.time() - t0)
         else:
             text = payload
+        if self.interrupted():
+            return
         if not brain.strip_wake(text):
             if kind == "audio" and len(payload) > audio.RATE * 1.5:
                 self._say("Sorry, I didn't catch that.")
@@ -218,6 +244,9 @@ class Jarvis:
         t1 = time.time()
         decision, value, args = brain.decide(text)
         log.info("decided %s %s %s (%.1fs)", decision, value, args, time.time() - t1)
+        if self.interrupted():
+            log.info("interrupted, dropped")
+            return
         if decision == "say":
             reply = value
         else:
@@ -238,7 +267,9 @@ class Jarvis:
             old.unlink()
 
     def _say(self, text):
-        if not text:
+        if text and self.interrupted():
+            log.info("interrupted, dropped %r", text)
+        if not text or self.interrupted():
             return
         log.info("said %r", text)
         self.add_transcript("jarvis", text)

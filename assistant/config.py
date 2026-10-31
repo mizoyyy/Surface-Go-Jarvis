@@ -35,7 +35,7 @@ DEFAULTS = {
     "night_mode": {"auto": True, "start": "22:00", "end": "07:00"},
     "calendar_ics_url": "",
     "cloud": {"enabled": True, "model": "gemini-flash-lite-latest", "effort": "low", "web_search": True},
-    "spotify": {"client_id": "", "device_name": ""},
+    "spotify": {"client_id": "", "device_name": "Jarvis"},
 }
 
 
