@@ -67,6 +67,10 @@ The kiosk starts at login from `~/.config/autostart/jarvis-kiosk.desktop`.
   audio keys ("audio key error", librespot-org/librespot#1649).
 
 ## Using it
+- The Jarvis icon (desktop and menu, made by `install.sh`) starts Jarvis if it was stopped and
+  opens the wall display, or brings it to the front. Alt+F4 closes only the display: Jarvis keeps
+  listening and answering (music stops, since the display is the Spotify speaker). Stop it fully
+  with `systemctl --user stop jarvis jarvis-llm`.
 - Prayer times (Umm al-Qura, for the location in Settings, no internet needed): "when is Maghrib",
   "how long until the next prayer", "what are the prayer times tomorrow", "set an alarm for Fajr".
   Questions that name a prayer or say "prayer" / "adhan" skip the model. Isha is 90 minutes after

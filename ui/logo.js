@@ -14,6 +14,7 @@
     muted:     { hue: 355, sat: 60, spin: 0.05, energy: 0.05, glow: 0.2 },
   };
 
+  const CALM = new Set(["idle", "muted", "starting"]);
   let target = STATES.starting, state = "starting";
   const cur = { ...STATES.starting };
   let level = 0, angle = 0, angle2 = 0, last = performance.now();
@@ -38,7 +39,7 @@
   }
 
   function frame(now) {
-    const dt = Math.min(0.05, (now - last) / 1000);
+    const dt = Math.min(0.12, (now - last) / 1000);
     last = now;
     for (const k of ["hue", "sat", "spin", "energy", "glow"]) cur[k] = lerp(cur[k], target[k], dt * 3);
     level = lerp(level, 0, dt * 4);
@@ -139,7 +140,10 @@
       ctx.lineWidth = R * 0.03; ctx.strokeStyle = col(65, 0.8); ctx.stroke();
     }
 
-    requestAnimationFrame(frame);
+    // idle, muted or starting: the slow breathing looks the same at ~12 fps, and every frame
+    // makes the desktop repaint, so the fanless tablet runs cooler between requests
+    if (CALM.has(state) && Math.abs(cur.spin - target.spin) < 0.01) setTimeout(() => requestAnimationFrame(frame), 80);
+    else requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
 
