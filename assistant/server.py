@@ -2,6 +2,7 @@
 
 import asyncio
 import contextlib
+import logging
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
@@ -11,9 +12,11 @@ from pydantic import BaseModel
 from . import config
 from .core import Jarvis
 from .skills import cloud, system
+from .skills.spotify import NotConnected
 from .skills.weather import geocode
 
 UI = config.REPO / "ui"
+log = logging.getLogger("jarvis")
 jarvis = Jarvis()
 
 # settings the UI may change, with the type each must have
@@ -165,6 +168,26 @@ def spotify_callback(code: str = "", error: str = ""):
     message = "Spotify connected." if code else f"Spotify login failed: {error}"
     return HTMLResponse(f"<meta http-equiv='refresh' content='2; url=/'><body style='background:#000;"
                         f"color:#9cf;font:24px sans-serif;padding:40px'>{message}</body>")
+
+
+@app.get("/api/spotify/token")
+def spotify_token():
+    """For the Web Playback SDK on the wall display (the server only listens on 127.0.0.1)."""
+    try:
+        return {"token": jarvis.spotify.player_token()}
+    except NotConnected:
+        raise HTTPException(409, "Spotify is not connected")
+
+
+class SpeakerLog(BaseModel):
+    message: str
+
+
+@app.post("/api/speaker/log")
+def speaker_log(body: SpeakerLog):
+    """The kiosk window has no visible console: the speaker reports what it's doing here."""
+    log.info("speaker: %s", body.message[:300])
+    return {"ok": True}
 
 
 @app.post("/spotify/disconnect")
