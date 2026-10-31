@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Jarvis</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="status">
+      <span id="st-mic" class="chip" title="Microphone"></span>
+      <span id="st-cloud" class="chip" title="Online answers"></span>
+      <span id="st-conn" class="chip warn hidden">Reconnecting…</span>
+    </div>
+    <div class="actions">
+      <button id="btn-night" class="icon-btn" aria-label="Night mode"></button>
+      <button id="btn-settings" class="icon-btn" aria-label="Settings"></button>
+    </div>
+  </header>
+
+  <main>
+    <section class="column" id="col-left">
+      <div class="slot" data-slot="0"></div>
+      <div class="slot" data-slot="2"></div>
+    </section>
+    <section id="center">
+      <button id="logo-btn" aria-label="Talk to Jarvis"><canvas id="logo"></canvas></button>
+      <div id="state-label"></div>
+      <div id="caption"><p id="cap-user"></p><p id="cap-reply"></p></div>
+    </section>
+    <section class="column" id="col-right">
+      <div class="slot" data-slot="1"></div>
+      <div class="slot" data-slot="3"></div>
+    </section>
+  </main>
+  <footer><div class="slot wide" data-slot="4"></div></footer>
+</div>
+
+<div id="ring" class="overlay hidden">
+  <div class="ring-card">
+    <div class="ring-icon"></div>
+    <h2 id="ring-title">Timer done</h2>
+    <p id="ring-sub"></p>
+    <button id="ring-stop" class="big-btn">Stop</button>
+  </div>
+</div>
+
+<div id="settings" class="overlay hidden">
+  <div class="panel">
+    <div class="panel-head">
+      <h2>Settings</h2>
+      <button id="settings-close" class="icon-btn" aria-label="Close"></button>
+    </div>
+    <div class="panel-body">
+      <section>
+        <h3>Ask Jarvis</h3>
+        <form id="f-command" class="row">
+          <input id="command" placeholder="Type a request, for example: set a timer for 5 minutes" autocomplete="off">
+          <button>Send</button>
+        </form>
+      </section>
+
+      <section>
+        <h3>Location</h3>
+        <p class="hint">Used for the weather. Currently <b id="loc-name"></b>.</p>
+        <form id="f-loc" class="row">
+          <input id="loc-q" placeholder="Search for a city" autocomplete="off">
+          <button>Search</button>
+        </form>
+        <div id="loc-results" class="choices"></div>
+        <label class="row">Units
+          <select id="units"><option value="metric">Celsius, km/h</option><option value="imperial">Fahrenheit, mph</option></select>
+        </label>
+      </section>
+
+      <section>
+        <h3>Widgets</h3>
+        <p class="hint">Turn widgets on or off and set their order. The first four go left, right, left, right; the fifth runs along the bottom.</p>
+        <ul id="widget-list" class="widget-list"></ul>
+      </section>
+
+      <section>
+        <h3>Sound and voice</h3>
+        <label class="row">Speaker volume <input type="range" id="volume" min="0" max="100" step="5"><output id="volume-out"></output></label>
+        <label class="row">Wake word sensitivity <input type="range" id="wake" min="0.2" max="0.9" step="0.05"><output id="wake-out"></output></label>
+        <p class="hint">Lower numbers react more easily (and to more false alarms).</p>
+        <label class="row check"><input type="checkbox" id="mic-on"> Microphone on</label>
+      </section>
+
+      <section>
+        <h3>Night mode</h3>
+        <label class="row check"><input type="checkbox" id="night-auto"> Turn on automatically</label>
+        <label class="row">From <input type="time" id="night-start"> to <input type="time" id="night-end"></label>
+      </section>
+
+      <section>
+        <h3>Online answers</h3>
+        <p class="hint">Questions the local model can't handle go online. Gemini has a free tier: get a key at aistudio.google.com (on the free tier Google may use your questions to improve its products). Claude needs a paid key from console.anthropic.com. Without a key, "what is" and "who is" questions are answered from Wikipedia. <span id="key-provider"></span> key: <b id="key-status"></b></p>
+        <label class="row check"><input type="checkbox" id="cloud-on"> Use online answers</label>
+        <label class="row check"><input type="checkbox" id="cloud-web"> Allow web search for current information</label>
+        <label class="row">Model
+          <select id="cloud-model">
+            <optgroup label="Gemini (free tier)">
+              <option value="gemini-flash-latest">Gemini Flash</option>
+              <option value="gemini-flash-lite-latest">Gemini Flash Lite (fastest)</option>
+            </optgroup>
+            <optgroup label="Claude (paid)">
+              <option value="claude-opus-5-5">Claude Opus 5.5</option>
+              <option value="claude-sonnet-5-5">Claude Sonnet 5.5</option>
+              <option value="claude-haiku-5-5">Claude Haiku 5.5 (fastest)</option>
+            </optgroup>
+          </select>
+        </label>
+        <form id="f-key" class="row">
+          <input id="api-key" type="password" placeholder="Paste a new API key" autocomplete="off">
+          <button>Save key</button>
+        </form>
+      </section>
+
+      <section>
+        <h3>Calendar</h3>
+        <p class="hint">Paste your calendar's private iCal link (Google Calendar: Settings, your calendar, "Secret address in iCal format").</p>
+        <form id="f-cal" class="row">
+          <input id="cal-url" placeholder="https://calendar.google.com/calendar/ical/…/basic.ics" autocomplete="off">
+          <button>Save</button>
+        </form>
+      </section>
+
+      <section>
+        <h3>Spotify</h3>
+        <p class="hint">Create an app at developer.spotify.com with the redirect URI <code>http://127.0.0.1:8000/spotify/callback</code>, then paste its Client ID here. Status: <b id="sp-status"></b></p>
+        <form id="f-sp" class="row">
+          <input id="sp-client" placeholder="Client ID" autocomplete="off">
+          <input id="sp-device" placeholder="Play on device (optional)" autocomplete="off">
+          <button>Save</button>
+        </form>
+        <div class="row"><a id="sp-connect" class="btn" href="/spotify/login">Connect Spotify</a><button id="sp-disconnect">Disconnect</button></div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="hidden"></div>
+<script src="/static/logo.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>

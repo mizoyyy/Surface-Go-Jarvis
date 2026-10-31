@@ -19,15 +19,21 @@
 - [x] Eval set and scoring (held-out eval split, hand-written eval_real, score.py, eval_gguf.py)
 - [ ] Quantize to GGUF **Q4_0** (Q4_K_M is 7x slower on this no-AVX CPU), publish as GitHub Release
 
-## Phase 3: Voice pipeline
-- [ ] "Hey Jarvis" wake word, VAD, STT, TTS
-- [ ] Orchestrator service with local/cloud routing
+## Phase 3: Voice pipeline (see docs/assistant.md)
+- [x] "Hey Jarvis" wake word (openWakeWord ONNX models on onnxruntime), end-of-speech detection,
+      STT (whisper-server, tiny.en q8_0), TTS (Piper, kept loaded)
+- [x] Orchestrator service with local/cloud routing (regex fast path, fine-tuned model, Claude fallback)
+- [ ] Live voice test at wall distance, tune wake sensitivity
 
 ## Phase 4: Skills
-- [ ] Time, timers, alarms, weather, calendar, Spotify, search, system controls
+- [x] Time, date, timers, alarms, weather (Open-Meteo), calendar (iCal link), Spotify (Web API),
+      online answers with web search (Claude), volume, screen, mic mute, night mode
+- [ ] Spotify playback device on the tablet (spotifyd), connect Spotify and calendar accounts
 
 ## Phase 5: Wall UI
-- [ ] Kiosk session, central animated logo, widget grid, settings screen, night mode
+- [x] Central animated logo, widget grid (clock, weather, timers, calendar, music), settings screen, night mode
+- [x] Kiosk launcher (Chrome app mode) and user services (deploy/install.sh)
+- [ ] Enable at login, disable screen lock and blanking
 
 ## Phase 6: Deploy and harden
 - [ ] Installer, auto-update from Releases, watchdogs, privacy mute

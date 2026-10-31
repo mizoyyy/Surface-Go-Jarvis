@@ -1,0 +1,14 @@
+[Unit]
+Description=Jarvis voice assistant and UI server
+Wants=jarvis-llm.service jarvis-stt.service jarvis-mic-levels.service
+After=jarvis-llm.service jarvis-stt.service jarvis-mic-levels.service pipewire-pulse.service
+
+[Service]
+WorkingDirectory=@REPO@
+ExecStart=%h/jarvis/venv/bin/python -m assistant
+Environment=PYTHONUNBUFFERED=1
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
