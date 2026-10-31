@@ -406,6 +406,16 @@ $("#f-vocab").addEventListener("submit", (ev) => {
   ev.preventDefault();
   save({ vocabulary: $("#vocab").value.split(",").map((w) => w.trim()).filter(Boolean) }, "Word list saved");
 });
+$("#btn-close-display").addEventListener("click", () => api("/api/close"));
+$("#btn-turn-off").addEventListener("click", (ev) => {
+  const b = ev.currentTarget;
+  if (!b.dataset.armed) {  // a second tap within 4 s confirms
+    b.dataset.armed = "1"; b.textContent = "Tap again to turn off";
+    setTimeout(() => { delete b.dataset.armed; b.textContent = "Turn off Jarvis"; }, 4000);
+    return;
+  }
+  api("/api/turn-off");
+});
 $("#f-cal").addEventListener("submit", (ev) => { ev.preventDefault(); save({ calendar_ics_url: $("#cal-url").value.trim() }); });
 $("#f-sp").addEventListener("submit", (ev) => {
   ev.preventDefault();

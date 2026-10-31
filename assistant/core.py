@@ -41,6 +41,7 @@ class Jarvis:
         self.generation = 0  # bumped by every wake: a request from an older one is dropped
         self.current = 0  # the generation the request being handled started in
         self.music_was_playing = False  # when the wake word came: short commands are about music
+        self.closing = None  # "close_display" / "stop_jarvis", done after the goodbye is spoken
         self.ringing = None
         self.transcript = []
         self.weather = None
@@ -264,6 +265,9 @@ class Jarvis:
             if value == "change_volume":
                 self.voice.play(self.chime)
         self._say(reply)
+        closing, self.closing = self.closing, None
+        if closing:
+            self.close(closing == "stop_jarvis")
 
     @staticmethod
     def _keep_recording(samples, keep=20):
@@ -283,6 +287,11 @@ class Jarvis:
         self.add_transcript("jarvis", text)
         self.set_state("speaking")
         self.voice.say(text)
+
+    def close(self, stop):
+        """Closes the wall display, and with stop=True turns Jarvis off (touch or voice)."""
+        log.info("turning off" if stop else "closing the display")
+        system.stop_jarvis() if stop else system.close_display()
 
     # ringing timers and alarms
 
