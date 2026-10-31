@@ -16,6 +16,7 @@ import traceback
 
 from . import audio, brain, config, skills, speech
 from .skills import cloud, system
+from .skills import prayer
 from .skills.calendar import Calendar
 from .skills.spotify import NotConnected, Spotify
 from .skills.timers import Timers
@@ -44,6 +45,7 @@ class Jarvis:
         self.transcript = []
         self.weather = None
         self.music = None
+        self.prayers = None
         self.player = audio.Player()
         self.voice = None
         self.wake = None
@@ -82,6 +84,7 @@ class Jarvis:
         return {
             "started": STARTED, "state": self.state, "night": self.night, "mic_muted": self.mic_muted,
             "timers": self.timers.snapshot(), "weather": self.weather, "music": self.music,
+            "prayers": self.prayers,
             "calendar": self.calendar.upcoming() if self.calendar.events else [],
             "transcript": self.transcript[-6:], "ringing": self.ringing,
             "settings": public,
@@ -105,6 +108,7 @@ class Jarvis:
         threading.Thread(target=self._worker, name="worker", daemon=True).start()
         loop.create_task(self._every(1, self._tick))
         loop.create_task(self._every(60, self._night_check))
+        loop.create_task(self._every(60, self._refresh_prayers))
         loop.create_task(self._every(900, self._refresh_weather))
         loop.create_task(self._every(900, self._refresh_calendar))
         loop.create_task(self._every(5, self._refresh_music))
@@ -350,6 +354,10 @@ class Jarvis:
 
     # periodic refreshes
 
+    def _refresh_prayers(self):
+        self.prayers = prayer.today_and_next()
+        self.emit("prayers", self.prayers)
+
     def _refresh_weather(self):
         self.weather = home_forecast()
         self.emit("weather", self.weather)
@@ -374,7 +382,7 @@ class Jarvis:
 
     def refresh_now(self):
         """After a settings change: fetch weather and calendar again right away."""
-        for fn in (self._refresh_weather, lambda: self.calendar.refresh(force=True) or self.emit(
+        for fn in (self._refresh_weather, self._refresh_prayers, lambda: self.calendar.refresh(force=True) or self.emit(
                 "calendar", self.calendar.upcoming())):
             try:
                 fn()
