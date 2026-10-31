@@ -9,6 +9,7 @@ Skills produce their own spoken confirmation, so there is no second LLM pass.
 """
 
 import json
+import re
 
 SYSTEM_PROMPT = "You are Jarvis, a home voice assistant. Reply with one tool call or one short sentence."
 
@@ -73,6 +74,8 @@ def validate(name, arguments):
         if allowed is not None and value not in allowed:
             return False
         if name == "set_timer" and key in TIMER_UNITS and not (isinstance(value, int) and value >= 0):
+            return False
+        if key == "time" and not (isinstance(value, str) and re.fullmatch(r"([01]?\d|2[0-3]):[0-5]\d", value)):
             return False
     if name == "set_timer" and timer_seconds(arguments) <= 0:
         return False

@@ -207,6 +207,8 @@ class Jarvis:
         else:
             text = payload
         if not brain.strip_wake(text):
+            if kind == "audio" and len(payload) > audio.RATE * 1.5:
+                self._say("Sorry, I didn't catch that.")
             return
         self.add_transcript("user", text)
         if self.ringing:
@@ -238,6 +240,7 @@ class Jarvis:
     def _say(self, text):
         if not text:
             return
+        log.info("said %r", text)
         self.add_transcript("jarvis", text)
         self.set_state("speaking")
         self.voice.say(text)

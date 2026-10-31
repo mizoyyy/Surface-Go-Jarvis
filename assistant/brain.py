@@ -13,7 +13,7 @@ import httpx
 from . import config
 
 sys.path.insert(0, str(config.REPO / "training"))
-from tools import SYSTEM_PROMPT, parse_reply, validate  # noqa: E402
+from tools import SYSTEM_PROMPT, TOOLS, parse_reply, validate  # noqa: E402
 
 WAKE = re.compile(r"^\W*(hey|hi|ok|okay)?\W*jarvis\W*", re.I)
 
@@ -25,6 +25,8 @@ FAST = [
     (r"(volume up|louder|turn it up)", "change_volume", {"direction": "up"}),
     (r"(volume down|quieter|softer|turn it down)", "change_volume", {"direction": "down"}),
     (r"(set( the)? )?volume( to)? (\d{1,3})( percent|%)?", "set_volume", None),
+    (r"(open|show)( me)?( the| your| my)? settings", "show_settings", {"open": True}),
+    (r"(close|hide)( the| your| my)? settings", "show_settings", {"open": False}),
 ]
 FAST = [(re.compile(rf"^{pattern}$", re.I), name, args) for pattern, name, args in FAST]
 
@@ -84,7 +86,12 @@ def decide(text):
         return ("tool", "ask_cloud", {"question": question})
     kind, value, args = parse_reply(ask_model(text))
     if kind == "invalid":
-        # the model reached for a tool but got the arguments wrong: let the cloud answer instead
+        name = re.search(r'"name"\s*:\s*"(\w+)"', value)
+        if name and name.group(1) in TOOLS and name.group(1) != "ask_cloud":
+            # a local tool with arguments it couldn't fill ("set an alarm for now"): the cloud
+            # can't set alarms either, so ask again
+            return ("say", "Sorry, I didn't get the details. Could you say that again?", None)
+        # the model reached for a tool but got it wrong: let the cloud answer instead
         return ("tool", "ask_cloud", {"question": strip_wake(text)})
     return kind, value, args
 

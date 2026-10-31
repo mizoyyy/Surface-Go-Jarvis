@@ -29,7 +29,21 @@ def transcribe(samples):
     text = r.json().get("text", "")
     text = re.sub(r"\[[^\]]*\]|\([^)]*\)|\*[^*]*\*", " ", text)  # [BLANK_AUDIO], (wind blowing)
     text = drop_repeats(" ".join(text.split()))
+    if looping(text, seconds):
+        return ""
     return text if re.search(r"[a-zA-Z]{2}", text) else ""  # "♪", "...", "x2"
+
+
+def looping(text, seconds):
+    """tiny.en on a short or noisy clip: "I'm not going to be able to be able to be able to ..."."""
+    words = re.findall(r"[\w']+", text.lower())
+    if len(words) > 5 * seconds + 4:  # people say about 2.5 words a second
+        return True
+    for n in range(2, 5):  # the same 2 to 4 words three times in a row ("stop stop stop" is fine)
+        for i in range(len(words) - 3 * n + 1):
+            if words[i:i + n] == words[i + n:i + 2 * n] == words[i + 2 * n:i + 3 * n]:
+                return True
+    return False
 
 
 def drop_repeats(text):

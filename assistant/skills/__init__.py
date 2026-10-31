@@ -26,6 +26,8 @@ def run(jarvis, name, args):
         return "Spotify isn't connected yet. You can connect it in the settings."
     except httpx.HTTPError:
         return "I couldn't reach that service right now."
+    except (ValueError, KeyError, TypeError):
+        return "Sorry, I didn't get that."
 
 
 def _run(jarvis, name, args):
@@ -56,6 +58,9 @@ def _run(jarvis, name, args):
         return ""  # the chime at the new volume is the answer
     if name == "device_control":
         return jarvis.device_control(args["action"])
+    if name == "show_settings":
+        jarvis.emit("show_settings", args["open"])
+        return ""
     if name == "ask_cloud":
         return cloud.ask_cloud(args["question"])
     return "I can't do that yet."
