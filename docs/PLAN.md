@@ -8,14 +8,14 @@
 - [x] linux-surface kernel, disable Wi-Fi power saving
 - [x] Audio check: built-in mics and speakers (built-in mic passes at wall distance,
       levels set at login by deploy/systemd/jarvis-mic-levels.service)
-- [ ] Battery care for always-plugged-in use (enable Battery Limit in Surface UEFI)
+- [x] Battery care for always-plugged-in use (Battery Limit enabled in Surface UEFI)
 - [x] Python env, build tools, llama.cpp, whisper.cpp, Piper (benchmarks in docs/phase1-notes.md)
 - [x] Power profile set to `performance` (power-saver made everything 3x slower)
 
 ## Phase 2: Model (GitHub + Colab)
 - [x] Dataset: Jarvis persona + tool-calling examples (training/generate_dataset.py, 4000 train rows)
 - [x] LoRA fine-tune of a ~0.5B open model (v1: 89.5% held-out, 95% hand-written; see training/README.md)
-- [ ] v2: unit-based timer arguments, more data for weak intents
+- [x] v2: unit-based timer arguments, more data for weak intents (95% held-out and hand-written on the tablet)
 - [x] Eval set and scoring (held-out eval split, hand-written eval_real, score.py, eval_gguf.py)
 - [ ] Quantize to GGUF **Q4_0** (Q4_K_M is 7x slower on this no-AVX CPU), publish as GitHub Release
 

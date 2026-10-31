@@ -11,12 +11,16 @@ from tools import messages, tool_call
 
 ROWS = [
     # from the Phase 1 speech test, as whisper heard it
-    ("set_timer", "Hey Jarvis, set a timer for 10 minutes.", tool_call("set_timer", seconds=600)),
-    ("set_timer", "Hey Jarvis, set a time of 10 minutes.", tool_call("set_timer", seconds=600)),
+    ("set_timer", "Hey Jarvis, set a timer for 10 minutes.", tool_call("set_timer", minutes=10)),
+    ("set_timer", "Hey Jarvis, set a time of 10 minutes.", tool_call("set_timer", minutes=10)),
     ("get_weather", "What's the weather like today?", tool_call("get_weather", day="today")),
-    ("set_timer", "um set a timer for like twenty minutes", tool_call("set_timer", seconds=1200)),
-    ("set_timer", "Jarvis, three minute timer for the noodles.", tool_call("set_timer", seconds=180, label="noodles")),
+    ("set_timer", "um set a timer for like twenty minutes", tool_call("set_timer", minutes=20)),
+    ("set_timer", "Jarvis, three minute timer for the noodles.", tool_call("set_timer", minutes=3, label="noodles")),
     ("set_timer", "can you do a 45 second timer", tool_call("set_timer", seconds=45)),
+    ("set_timer", "set a timer for two hours", tool_call("set_timer", hours=2)),
+    ("set_timer", "10 minutes and 30 seconds on the timer", tool_call("set_timer", minutes=10, seconds=30)),
+    ("set_timer", "timer for an hour and fifteen minutes", tool_call("set_timer", hours=1, minutes=15)),
+    ("set_timer", "Jarvis, set a 90 second timer.", tool_call("set_timer", seconds=90)),
     ("cancel_timer", "okay cancel the noodles timer", tool_call("cancel_timer", label="noodles")),
     ("timer_status", "how long's left on the timer", tool_call("timer_status")),
     ("set_alarm", "Wake me up at 6:15 am tomorrow.", tool_call("set_alarm", time="06:15", day="tomorrow")),

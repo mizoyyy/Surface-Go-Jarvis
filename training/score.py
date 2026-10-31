@@ -14,14 +14,18 @@ import json
 import re
 import sys
 
-from tools import parse_reply
+from tools import TIMER_UNITS, parse_reply, timer_seconds
 
 TEXT_ARGS = {"label", "location", "query", "question"}
 
 
-def norm_args(arguments):
-    return {k: re.sub(r"[^\w\s]", "", v.lower()).strip() if k in TEXT_ARGS and isinstance(v, str) else v
+def norm_args(name, arguments):
+    args = {k: re.sub(r"[^\w\s]", "", v.lower()).strip() if k in TEXT_ARGS and isinstance(v, str) else v
             for k, v in arguments.items()}
+    if name == "set_timer":
+        # a timer is right when it rings at the right time, however the units are split
+        args = {k: v for k, v in args.items() if k not in TIMER_UNITS} | {"total": timer_seconds(arguments)}
+    return args
 
 
 def judge(gold_text, pred_text):
@@ -33,7 +37,7 @@ def judge(gold_text, pred_text):
         return pred[0] == "say", pred[0] == "say", "say"
     if pred[0] != "tool" or pred[1] != gold[1]:
         return False, False, "wrong_tool"
-    ok = norm_args(pred[2]) == norm_args(gold[2])
+    ok = norm_args(gold[1], pred[2]) == norm_args(gold[1], gold[2])
     return ok, True, "ok" if ok else "wrong_args"
 
 

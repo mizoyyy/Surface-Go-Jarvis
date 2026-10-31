@@ -8,7 +8,7 @@ so it measures generalisation, not memorisation. Utterances get the same kind of
 whisper produced on the tablet: lowercase, no punctuation, "hey jarvis" left in,
 and slips like "time of" for "timer".
 
-Usage: python3 training/generate_dataset.py [--seed 7] [--train 4000] [--val 300] [--eval 400]
+Usage: python3 training/generate_dataset.py [--seed 7] [--train 6000] [--val 300] [--eval 400]
 """
 
 import argparse
@@ -26,8 +26,10 @@ TENS = "_ _ twenty thirty forty fifty sixty seventy eighty ninety".split()
 def number_words(n):
     if n < 20:
         return ONES[n]
-    if n == 100:
-        return "a hundred"
+    if n >= 100:
+        hundreds, rest = divmod(n, 100)
+        head = "a hundred" if hundreds == 1 else ONES[hundreds] + " hundred"
+        return head if rest == 0 else f"{head} and {number_words(rest)}"
     tens, ones = divmod(n, 10)
     return TENS[tens] + ("" if ones == 0 else "-" + ONES[ones])
 
@@ -97,7 +99,8 @@ TEMPLATES = {
     ),
     "get_date": (
         ["what's the date", "what's today's date", "what day is it", "what's the date today",
-         "which day is it today", "tell me the date", "what day of the week is it"],
+         "which day is it today", "tell me the date", "what day of the week is it",
+         "is today friday", "is it the weekend yet", "what month is it"],
         ["what's the date today please", "is it monday today", "today's date"],
     ),
     "set_timer": (
@@ -133,7 +136,8 @@ TEMPLATES = {
         ["what's the weather", "what's the weather like {day}", "weather {day}", "will it rain {day}",
          "how hot is it going to be {day}", "what's the forecast for {day}", "is it cold outside",
          "what's the weather in {city}", "weather in {city} {day}", "how's the weather in {city}",
-         "do I need an umbrella {day}", "what's the temperature outside"],
+         "do I need an umbrella {day}", "what's the temperature outside", "what's the temperature in {city}",
+         "how warm is it in {city} {day}", "is it windy {day}", "any rain in {city} {day}"],
         ["what's it like outside", "is it going to be sunny {day}", "forecast for {city} {day}",
          "should I wear a jacket {day}", "temperature in {city}"],
     ),
@@ -166,11 +170,14 @@ TEMPLATES = {
                     ["pause playback", "freeze the song"]),
     "media_resume": (["resume", "resume the music", "continue playing", "unpause", "play again", "keep playing"],
                      ["carry on playing", "start the music again"]),
-    "media_next": (["next song", "skip", "skip this song", "next track", "play the next one", "skip this"],
+    "media_next": (["next song", "skip", "skip this song", "next track", "play the next one", "skip this",
+                    "skip it", "skip that one", "move on to the next song", "change the song"],
                    ["next one please", "I don't like this song skip it"]),
-    "media_previous": (["previous song", "go back", "play the last song again", "previous track", "back one song"],
+    "media_previous": (["previous song", "go back", "play the last song again", "previous track", "back one song",
+                        "play the one before", "go back to the last song", "the previous one please"],
                        ["the song before", "go back a track"]),
-    "media_stop": (["stop the music", "stop playing", "stop spotify", "turn off the music", "stop the song"],
+    "media_stop": (["stop the music", "stop playing", "stop spotify", "turn off the music", "stop the song",
+                    "stop", "music off", "no more music"],
                    ["enough music", "kill the music"]),
     "set_volume": (["set the volume to {n}", "volume {n}", "volume to {n} percent", "turn the volume to {n}",
                     "change the volume to {n}", "set volume at {n} percent"],
@@ -208,7 +215,8 @@ SMALL_TALK = {
                  ["what should I call you", "tell me about yourself", "what are you able to do"],
                  ["I'm Jarvis, your home assistant. I can handle timers, alarms, weather, your calendar and music.",
                   "I'm Jarvis. Ask me about timers, alarms, weather, your calendar or music."]),
-    "never_mind": (["never mind", "nothing", "forget it", "cancel", "ignore that", "nothing never mind"],
+    "never_mind": (["never mind", "nothing", "forget it", "cancel", "ignore that", "nothing never mind",
+                    "oops", "my mistake", "I didn't mean to say that", "pressed it by accident", "not you"],
                    ["no it's fine", "sorry wrong button", "oh forget about it"],
                    ["Very well.", "Of course.", "No problem."]),
     "how_are_you": (["how are you", "how's it going", "how are you doing", "you alright"],
@@ -218,12 +226,12 @@ SMALL_TALK = {
 
 # Intent weights for sampling (relative).
 WEIGHTS = {
-    "get_time": 4, "get_date": 3, "set_timer": 14, "cancel_timer": 4, "timer_status": 3, "set_alarm": 10,
-    "cancel_alarm": 3, "get_weather": 9, "calendar_events": 5, "spotify_play_track": 5,
-    "spotify_play_artist": 5, "spotify_play_album": 3, "spotify_play_playlist": 4, "media_pause": 2,
-    "media_resume": 2, "media_next": 2, "media_previous": 1, "media_stop": 2, "set_volume": 3,
-    "volume_up": 2, "volume_down": 2, "screen_off": 1, "screen_on": 1, "mute_mic": 1, "night_mode_on": 1,
-    "night_mode_off": 1, "ask_cloud": 12, "greeting": 2, "thanks": 2, "identity": 2, "never_mind": 2,
+    "get_time": 4, "get_date": 5, "set_timer": 16, "cancel_timer": 4, "timer_status": 3, "set_alarm": 10,
+    "cancel_alarm": 3, "get_weather": 11, "calendar_events": 5, "spotify_play_track": 5,
+    "spotify_play_artist": 5, "spotify_play_album": 3, "spotify_play_playlist": 5, "media_pause": 2,
+    "media_resume": 2, "media_next": 4, "media_previous": 3, "media_stop": 3, "set_volume": 3,
+    "volume_up": 2, "volume_down": 2, "screen_off": 2, "screen_on": 1, "mute_mic": 2, "night_mode_on": 1,
+    "night_mode_off": 1, "ask_cloud": 12, "greeting": 2, "thanks": 2, "identity": 2, "never_mind": 4,
     "how_are_you": 1,
 }
 
@@ -245,25 +253,36 @@ ASR_SLIPS = [("a timer for", "a time of"), ("timer for", "timer of"), ("weather"
 
 
 def duration(rng):
-    """(spoken text, seconds)."""
-    kind = rng.choice(["sec", "min", "min", "min", "hour", "combo", "phrase"])
+    """(spoken text, unit arguments). Units are copied as said, never converted."""
+    kind = rng.choice(["sec", "min", "min", "min", "hour", "combo", "hour_combo", "phrase"])
     if kind == "sec":
-        n = rng.choice([10, 15, 20, 30, 45, 60, 90])
-        return f"{say_number(rng, n)} seconds", n
+        n = rng.choice([5, 10, 15, 20, 30, 40, 45, 60, 90, 120])
+        return f"{say_number(rng, n)} {rng.choice(['seconds', 'seconds', 'secs'])}", {"seconds": n}
     if kind == "min":
-        n = rng.choice([1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20, 25, 30, 40, 45, 50, 60, 90])
+        n = rng.choice([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 18, 20, 25, 30, 35, 40, 45, 50, 60, 75, 90, 100])
         unit = "minute" if n == 1 else rng.choice(["minutes", "minutes", "mins"])
-        return f"{'a' if n == 1 and rng.random() < 0.5 else say_number(rng, n)} {unit}", n * 60
+        return f"{'a' if n == 1 and rng.random() < 0.5 else say_number(rng, n)} {unit}", {"minutes": n}
     if kind == "hour":
-        n = rng.choice([1, 2, 3])
+        n = rng.choice([1, 2, 3, 4, 5, 6, 8, 12])
         unit = "hour" if n == 1 else "hours"
-        return f"{'an' if n == 1 and rng.random() < 0.5 else say_number(rng, n)} {unit}", n * 3600
+        return f"{'an' if n == 1 and rng.random() < 0.5 else say_number(rng, n)} {unit}", {"hours": n}
     if kind == "combo":
-        m, s = rng.choice([1, 2, 3, 4, 5, 10]), rng.choice([15, 30, 45])
-        return f"{say_number(rng, m)} minute{'s' if m > 1 else ''} and {say_number(rng, s)} seconds", m * 60 + s
-    text, secs = rng.choice([("half an hour", 1800), ("an hour and a half", 5400), ("a minute and a half", 90),
-                             ("quarter of an hour", 900), ("two and a half minutes", 150), ("a couple of minutes", 120)])
-    return text, secs
+        m, s = rng.choice([1, 2, 3, 4, 5, 6, 8, 10, 12, 15]), rng.choice([10, 15, 20, 30, 45])
+        joiner = rng.choice([" and ", " "])
+        return (f"{say_number(rng, m)} minute{'s' if m > 1 else ''}{joiner}{say_number(rng, s)} seconds",
+                {"minutes": m, "seconds": s})
+    if kind == "hour_combo":
+        h, m = rng.choice([1, 2, 3]), rng.choice([5, 10, 15, 20, 30, 40, 45])
+        joiner = rng.choice([" and ", " "])
+        return (f"{say_number(rng, h)} hour{'s' if h > 1 else ''}{joiner}{say_number(rng, m)} minutes",
+                {"hours": h, "minutes": m})
+    return rng.choice([
+        ("half an hour", {"minutes": 30}), ("an hour and a half", {"hours": 1, "minutes": 30}),
+        ("a minute and a half", {"minutes": 1, "seconds": 30}), ("quarter of an hour", {"minutes": 15}),
+        ("two and a half minutes", {"minutes": 2, "seconds": 30}), ("a couple of minutes", {"minutes": 2}),
+        ("two and a half hours", {"hours": 2, "minutes": 30}), ("half a minute", {"seconds": 30}),
+        ("three quarters of an hour", {"minutes": 45}),
+    ])
 
 
 def clock_time(rng):
@@ -311,9 +330,8 @@ def build(rng, intent, split):
         name, args = SIMPLE[intent]
         return template, None, name, dict(args)
     if intent == "set_timer":
-        text, secs = duration(rng)
+        text, args = duration(rng)
         label = pick(rng, TIMER_LABELS, split)
-        args = {"seconds": secs}
         if "{label}" in template:
             args["label"] = label
         return template.format(d=text, label=label), None, "set_timer", args
@@ -407,7 +425,7 @@ def sample(rng, n, split):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--seed", type=int, default=7)
-    ap.add_argument("--train", type=int, default=4000)
+    ap.add_argument("--train", type=int, default=6000)
     ap.add_argument("--val", type=int, default=300)
     ap.add_argument("--eval", type=int, default=400)
     ap.add_argument("--out", default=str(Path(__file__).parent / "data"))
