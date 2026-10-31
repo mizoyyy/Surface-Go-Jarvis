@@ -40,7 +40,10 @@ header { display: flex; justify-content: space-between; align-items: center; min
 .chip.off { color: var(--danger); border-color: rgba(255,93,108,0.4); }
 .chip.warn { color: var(--warn); }
 .chip svg, .icon-btn svg { width: 16px; height: 16px; }
-.actions { display: flex; gap: 10px; }
+.actions { display: flex; gap: 10px; align-items: center; }
+.battery { display: flex; align-items: center; gap: 4px; font-size: 14px; color: var(--dim); margin-right: 4px; font-variant-numeric: tabular-nums; }
+.battery svg { width: 24px; height: 24px; }
+.battery.low { color: var(--warn); }
 .icon-btn {
   width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line); background: rgba(255,255,255,0.04);
   display: grid; place-items: center; cursor: pointer;
@@ -174,5 +177,3 @@ body.night #caption, body.night footer, body.night .w-weather .days { opacity: 0
   #center { order: -1; }
 }
 
-/* wall display: touch only, no mouse cursor */
-.kiosk, .kiosk * { cursor: none !important; }
