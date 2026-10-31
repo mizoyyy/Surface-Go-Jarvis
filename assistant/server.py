@@ -21,7 +21,7 @@ jarvis = Jarvis()
 
 # settings the UI may change, with the type each must have
 EDITABLE = {"location": dict, "units": str, "voice": str, "wake_threshold": float, "widgets": list,
-            "night_mode": dict, "calendar_ics_url": str, "cloud": dict, "spotify": dict}
+            "night_mode": dict, "calendar_ics_url": str, "cloud": dict, "spotify": dict, "vocabulary": list}
 
 
 @contextlib.asynccontextmanager

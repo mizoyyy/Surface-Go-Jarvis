@@ -1,7 +1,7 @@
 # The assistant: how it runs
 
 ```
-arecord (16 kHz) -> wake word "hey jarvis" -> end of speech -> whisper-server (STT)
+arecord (16 kHz) -> wake word "hey jarvis" -> end of speech -> Moonshine (STT) -> word list
   -> regex fast path, or the fine-tuned model on llama-server -> skill -> Piper (TTS) -> aplay
                                     \-> Gemini or Claude for anything the tools can't answer
 FastAPI on 127.0.0.1:8000 <-> WebSocket <-> wall UI (Chrome in kiosk mode)
@@ -11,8 +11,7 @@ FastAPI on 127.0.0.1:8000 <-> WebSocket <-> wall UI (Chrome in kiosk mode)
 | Unit | What | Port | RAM |
 |---|---|---|---|
 | `jarvis-llm` | llama-server, `jarvis-0.5b-v2-q4_0.gguf`, 2 threads | 8091 | ~320 MB |
-| `jarvis-stt` | whisper-server, `ggml-tiny.en-q8_0.bin` | 8092 | ~80 MB |
-| `jarvis` | `python -m assistant`: mic, wake word, skills, Piper, UI server | 8000 | ~200 MB |
+| `jarvis` | `python -m assistant`: mic, wake word, Moonshine STT, skills, Piper, UI server | 8000 | ~300 MB |
 | `jarvis-mic-levels` | sets the mic boost at login | | |
 
 Install or update: `sh deploy/install.sh`. Logs: `journalctl --user -u jarvis -f`.
@@ -24,7 +23,9 @@ The kiosk starts at login from `~/.config/autostart/jarvis-kiosk.desktop`.
 | `core.py` | Mic loop (wake word + endpointing), request worker, timers ringing, night mode, UI events |
 | `wakeword.py` | openWakeWord's streaming pipeline on onnxruntime (the package itself needs scikit-learn and tflite) |
 | `audio.py` | arecord capture, end-of-speech detection against the room's noise floor, aplay playback, chime |
-| `speech.py` | whisper-server client (audio context sized to the clip), Piper voice |
+| `speech.py` | Speech to text (cleanup, loop filter, word list) and the Piper voice |
+| `moonshine.py` | Moonshine base 8-bit on onnxruntime: encoder, then greedy decoding with a key/value cache |
+| `vocab.py` | Puts names from the word list right ("armor dab" -> Amr Diab), prayer names before "prayer" |
 | `brain.py` | Regex fast path, then the fine-tuned model; an invalid tool call goes to `ask_cloud` |
 | `skills/` | One module per area; each tool returns the sentence Jarvis says |
 | `server.py` | HTTP + WebSocket API for the UI |
@@ -32,13 +33,18 @@ The kiosk starts at login from `~/.config/autostart/jarvis-kiosk.desktop`.
 
 ## Speed on the tablet
 - Wake word: ~15 ms per 80 ms of audio.
-- STT: 2 to 4 s for a short command. Fast-path commands (time, pause, next, volume) then answer at once.
-  General questions ("what is", "who", "how", "find") with no word a local tool would handle skip
-  the local model and go straight online.
-- whisper-server is built with `deploy/whisper-server-max-tokens.patch` (apply in
-  `~/jarvis/src/whisper.cpp`, then `cmake --build build --target whisper-server`). It lets each
-  request cap the tokens decoded: with the shortened audio context tiny.en sometimes repeats the
-  sentence until 224 tokens, which took 5 to 10 s; capped at 32, the repeats are dropped in Python.
+- STT: Moonshine base, 8-bit (`~/jarvis/models/moonshine`, from `UsefulSensors/moonshine`
+  `onnx/merged/base/quantized`, plus its `tokenizer.json`), about 1 to 2 s for a short command.
+  Fast-path commands (time, pause, next, volume) then answer at once. General questions ("what
+  is", "who", "how", "find") with no word a local tool would handle skip the local model.
+- Why Moonshine: its work grows with the clip, where whisper encodes a fixed 30 s window. On the
+  last 20 real commands (31 Oct) whisper tiny.en took 5.2 s on average, Moonshine base float 1.9 s,
+  8-bit 2.5 s (1.8 s with the in-process runner), all about equally accurate; whisper base.en was
+  no better and twice as slow. 8-bit replaces the 110 MB whisper-server at about the same memory.
+  The first half second (end of "hey jarvis" and the chime) is cut: with it Moonshine returned
+  nothing on 7 of the 20.
+- Moonshine takes no vocabulary hint, so names it can't spell are fixed afterwards from the word
+  list in Settings, by sound ("armor dab" -> Amr Diab, "mug rib prayer" -> Maghrib prayer).
 - Model: ~3.5 s for a tool call. Total from end of speech to answer: about 6 s on the model path.
 
 ## Accounts (from the settings screen)

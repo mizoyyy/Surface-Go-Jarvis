@@ -125,6 +125,7 @@ class Jarvis:
         from .wakeword import WakeWord
 
         self.voice = speech.Voice(self.player)
+        speech.load_stt()
         self.wake = WakeWord(config.WAKE_DIR)
         self.chime = audio.chime(self.voice.rate)
         for attempt in range(60):

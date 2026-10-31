@@ -18,7 +18,7 @@ Wall-mounted, Alexa-style voice assistant called **Jarvis**, running on a Micros
 
 ## Architecture
 ```
-mic -> openWakeWord ("hey jarvis") -> VAD -> whisper.cpp (STT)
+mic -> openWakeWord ("hey jarvis") -> VAD -> Moonshine (STT) + word list
     -> router: local LLM (llama.cpp, ~0.5B Q4 GGUF, tool calling)
                or cloud LLM for complex questions
     -> skills (timers, weather, calendar, spotify, search, system)

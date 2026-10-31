@@ -17,13 +17,12 @@ MODELS = HOME / "models"
 CONFIG_DIR = pathlib.Path(os.environ.get("JARVIS_CONFIG", pathlib.Path.home() / ".config" / "jarvis"))
 
 LLM_MODEL = MODELS / "llm" / "jarvis-0.5b-v2-q4_0.gguf"
-WHISPER_MODEL = MODELS / "whisper" / "ggml-tiny.en-q8_0.bin"
+MOONSHINE_DIR = MODELS / "moonshine"  # base, 8-bit (UsefulSensors/moonshine onnx/merged/base/quantized)
 WAKE_DIR = MODELS / "wakeword"
 PIPER_DIR = MODELS / "piper"
 RECORDINGS = pathlib.Path.home() / ".cache" / "jarvis" / "recordings"
 
 LLM_URL = "http://127.0.0.1:8091"
-STT_URL = "http://127.0.0.1:8092"
 UI_HOST, UI_PORT = "127.0.0.1", 8000
 
 DEFAULTS = {
@@ -36,6 +35,9 @@ DEFAULTS = {
     "calendar_ics_url": "",
     "cloud": {"enabled": True, "model": "gemini-flash-lite-latest", "effort": "low", "web_search": True},
     "spotify": {"client_id": "", "device_name": "Jarvis"},
+    # names the speech model can't spell; prayer names are built in (assistant/vocab.py)
+    "vocabulary": ["Amr Diab", "Mohammed Abdu", "Abdul Majeed Abdullah", "Rashed Al Majed", "Dhahran",
+                   "Khobar", "Dammam", "Riyadh", "Jeddah", "Makkah", "Madinah", "Ramadan"],
 }
 
 
