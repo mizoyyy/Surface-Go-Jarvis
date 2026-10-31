@@ -39,6 +39,7 @@ class Jarvis:
         self.listen_request = False  # tap on the logo: listen without the wake word
         self.generation = 0  # bumped by every wake: a request from an older one is dropped
         self.current = 0  # the generation the request being handled started in
+        self.music_was_playing = False  # when the wake word came: short commands are about music
         self.ringing = None
         self.transcript = []
         self.weather = None
@@ -187,7 +188,9 @@ class Jarvis:
         if self.screen_off:
             self.device_control("screen_on", quiet=True)
         self.voice.stop()  # cuts off an answer or a ringing chime mid-sound
-        if self.music and self.music.get("playing"):
+        self.emit("hush", True)  # the wall display's player pauses at once, before you speak
+        self.music_was_playing = bool(self.music and self.music.get("playing"))
+        if self.music_was_playing:
             self.music = dict(self.music, playing=False)
             self.emit("music", self.music)
             threading.Thread(target=self._pause_music, daemon=True).start()
@@ -242,7 +245,7 @@ class Jarvis:
             if STOP_WORDS.search(text) or len(brain.strip_wake(text).split()) <= 2:
                 return
         t1 = time.time()
-        decision, value, args = brain.decide(text)
+        decision, value, args = brain.decide(text, music_playing=kind == "audio" and self.music_was_playing)
         log.info("decided %s %s %s (%.1fs)", decision, value, args, time.time() - t1)
         if self.interrupted():
             log.info("interrupted, dropped")

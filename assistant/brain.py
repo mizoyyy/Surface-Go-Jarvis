@@ -5,6 +5,7 @@ goes to the fine-tuned model on llama-server. The prompt format, tool schema and
 shared with training (training/tools.py), so the assistant sees exactly what the model learned.
 """
 
+import difflib
 import re
 import sys
 
@@ -42,6 +43,23 @@ LOCAL = re.compile(
     r"skip|volume|louder|quieter|mute|screen|night mode|mic|microphone|you|your|yourself|jarvis|my|i|our)\b", re.I)
 
 
+# with music playing in the room tiny.en mishears short commands: "toss music", "tause music",
+# "pause me". Only while music was playing, close matches count as these.
+MUSIC_PHRASES = {
+    "pause music": "pause", "pause the music": "pause", "stop music": "pause", "stop the music": "pause",
+    "pause": "pause", "stop": "pause", "pause it": "pause", "resume music": "resume",
+    "next song": "next", "skip song": "next", "skip this song": "next", "previous song": "previous",
+}
+
+
+def music_command(text):
+    clean = re.sub(r"[^\w\s']", "", strip_wake(text)).strip().lower()
+    if not clean or len(clean.split()) > 4 or clean.startswith("play"):
+        return None
+    match = difflib.get_close_matches(clean, MUSIC_PHRASES, n=1, cutoff=0.7)
+    return ("media_control", {"action": MUSIC_PHRASES[match[0]]}) if match else None
+
+
 def strip_wake(text):
     return WAKE.sub("", text).strip()
 
@@ -76,9 +94,9 @@ def warm_up():
     ask_model("hello")
 
 
-def decide(text):
+def decide(text, music_playing=False):
     """Returns ("tool", name, args) or ("say", text, None)."""
-    fast = fast_path(text)
+    fast = fast_path(text) or (music_playing and music_command(text))
     if fast:
         return ("tool", *fast)
     question = strip_wake(text)

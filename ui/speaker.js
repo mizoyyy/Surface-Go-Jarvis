@@ -52,6 +52,7 @@ const Speaker = (() => {
   }
 
   return {
+    pause() { if (player) player.pause(); },
     update(next) {
       if (!next) return;
       status = next;

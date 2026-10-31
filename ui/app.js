@@ -79,6 +79,7 @@ function handle({ type, data }) {
     case "mic_muted": S.mic_muted = data; renderStatus(); break;
     case "ringing": data ? showRing(data) : hideRing(); break;
     case "settings": S.settings = data; renderAll(); fillSettings(); break;
+    case "hush": window.Speaker?.pause(); break;
     case "show_settings": if (data) fillSettings(); $("#settings").classList.toggle("hidden", !data); break;
     case "status": S.status = data; renderStatus(); fillSettings(); window.Speaker?.update(data); break;
   }
