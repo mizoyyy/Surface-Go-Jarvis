@@ -100,6 +100,11 @@ footer .slot { min-height: 0; }
 .w-timers .list { overflow: auto; }
 
 /* calendar */
+.w-prayer .pr { display: flex; justify-content: space-between; font-size: 18px; padding: 5px 0; border-bottom: 1px solid var(--line); }
+.w-prayer .pr .t { font-variant-numeric: tabular-nums; }
+.w-prayer .pr.past { color: var(--dim); }
+.w-prayer .pr.next { color: var(--accent); font-weight: 600; }
+.w-prayer .next-prayer { margin-top: auto; padding-top: 8px; font-size: 15px; color: var(--accent); }
 .w-calendar .daygroup { margin-bottom: 10px; }
 .w-calendar .dayname { font-size: 13px; color: var(--accent); margin-bottom: 4px; }
 .w-calendar .ev { display: flex; gap: 10px; font-size: 16px; padding: 3px 0; }

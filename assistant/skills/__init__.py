@@ -58,6 +58,9 @@ def _run(jarvis, name, args):
         return ""  # the chime at the new volume is the answer
     if name == "device_control":
         return jarvis.device_control(args["action"])
+    if name == "prayer_times":
+        from .prayer import prayer_times
+        return prayer_times(**args, timers=timers)
     if name == "show_settings":
         jarvis.emit("show_settings", args["open"])
         return ""

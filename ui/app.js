@@ -1,6 +1,6 @@
 // Wall UI: listens to the assistant over a WebSocket and renders the widgets around the logo.
 const $ = (sel) => document.querySelector(sel);
-const S = { settings: {}, status: {}, timers: { timers: [], alarms: [] }, weather: null, calendar: [], music: null };
+const S = { settings: {}, status: {}, timers: { timers: [], alarms: [] }, weather: null, calendar: [], music: null, prayers: null };
 
 const svg = (body, vb = "0 0 24 24") =>
   `<svg viewBox="${vb}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
@@ -75,6 +75,7 @@ function handle({ type, data }) {
     case "weather": S.weather = data; renderWidget("weather"); break;
     case "calendar": S.calendar = data; renderWidget("calendar"); break;
     case "music": S.music = data; renderWidget("music"); break;
+    case "prayers": S.prayers = data; renderWidget("prayer"); break;
     case "night": applyNight(data); break;
     case "mic_muted": S.mic_muted = data; renderStatus(); break;
     case "ringing": data ? showRing(data) : hideRing(); break;
@@ -191,6 +192,20 @@ const WIDGETS = {
         <button class="x" data-cancel="${it.id}">${ICON.close}</button></div>`;
     }).join("");
     return `<h4>Timers</h4><div class="list">${rows}</div>`;
+  },
+  prayer() {
+    const p = S.prayers;
+    if (!p) return `<h4>Prayer</h4><div class="empty">Working out today's times…</div>`;
+    const fmt = (hhmm) => (({ hm, ampm }) => `${hm} ${ampm}`)(fmtClock(new Date(`2000-01-01T${hhmm}`)));
+    const now = new Date(), nowHm = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+    const rows = p.times.map((t) => {
+      const cls = t.name === p.next.name && t.at === p.next.at ? "next" : t.at <= nowHm ? "past" : "";
+      return `<div class="pr ${cls}"><span>${t.name}</span><span class="t">${fmt(t.at)}</span></div>`;
+    }).join("");
+    const mins = Math.max(0, Math.round(p.next.in / 60));
+    const left = mins >= 60 ? `${Math.floor(mins / 60)} h ${mins % 60} min` : `${mins} min`;
+    return `<h4>Prayer</h4><div class="list">${rows}</div>
+      <div class="next-prayer">${p.next.name} in ${left}</div>`;
   },
   calendar() {
     if (!S.settings.calendar_ics_url) return `<h4>Calendar</h4><div class="empty">Add your calendar link in Settings.</div>`;
@@ -317,7 +332,7 @@ function fillSettings() {
   renderWidgetList();
 }
 
-const ALL_WIDGETS = ["clock", "weather", "timers", "calendar", "music"];
+const ALL_WIDGETS = ["clock", "weather", "timers", "prayer", "calendar", "music"];
 function renderWidgetList() {
   const on = S.settings.widgets || [];
   const order = [...on, ...ALL_WIDGETS.filter((w) => !on.includes(w))];

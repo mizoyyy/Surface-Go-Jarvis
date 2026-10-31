@@ -30,7 +30,7 @@ DEFAULTS = {
     "units": "metric",
     "voice": "en_GB-alan-medium",
     "wake_threshold": 0.5,
-    "widgets": ["clock", "weather", "timers", "calendar", "music"],
+    "widgets": ["clock", "weather", "timers", "prayer", "music"],
     "night_mode": {"auto": True, "start": "22:00", "end": "07:00"},
     "calendar_ics_url": "",
     "cloud": {"enabled": True, "model": "gemini-flash-lite-latest", "effort": "low", "web_search": True},

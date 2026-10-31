@@ -12,6 +12,7 @@ import sys
 import httpx
 
 from . import config
+from .skills import prayer
 
 sys.path.insert(0, str(config.REPO / "training"))
 from tools import SYSTEM_PROMPT, TOOLS, parse_reply, validate  # noqa: E402
@@ -96,7 +97,7 @@ def warm_up():
 
 def decide(text, music_playing=False):
     """Returns ("tool", name, args) or ("say", text, None)."""
-    fast = fast_path(text) or (music_playing and music_command(text))
+    fast = fast_path(text) or (music_playing and music_command(text)) or prayer.asked(strip_wake(text))
     if fast:
         return ("tool", *fast)
     question = strip_wake(text)

@@ -28,6 +28,7 @@ The kiosk starts at login from `~/.config/autostart/jarvis-kiosk.desktop`.
 | `vocab.py` | Puts names from the word list right ("armor dab" -> Amr Diab), prayer names before "prayer" |
 | `brain.py` | Regex fast path, then the fine-tuned model; an invalid tool call goes to `ask_cloud` |
 | `skills/` | One module per area; each tool returns the sentence Jarvis says |
+| `skills/prayer.py` | Umm al-Qura prayer times computed on the tablet (sun position as in PrayTimes.org), voice answers, prayer alarms |
 | `server.py` | HTTP + WebSocket API for the UI |
 | `config.py` | Paths, ports, settings (`~/.config/jarvis/settings.json`), secrets (`secrets.json`, mode 600) |
 
@@ -66,6 +67,12 @@ The kiosk starts at login from `~/.config/autostart/jarvis-kiosk.desktop`.
   audio keys ("audio key error", librespot-org/librespot#1649).
 
 ## Using it
+- Prayer times (Umm al-Qura, for the location in Settings, no internet needed): "when is Maghrib",
+  "how long until the next prayer", "what are the prayer times tomorrow", "set an alarm for Fajr".
+  Questions that name a prayer or say "prayer" / "adhan" skip the model. Isha is 90 minutes after
+  Maghrib, 120 in Ramadan (tabular Hijri calendar, can be a day off at the month's edges).
+  Checked against the Aladhan API (method 4) on six dates across a year: all equal to the minute
+  but one Asr, 1 minute off. The Prayer widget shows today's times and the next one.
 - Say "Hey Jarvis", wait for the chime, then the request. Or tap the logo to talk.
 - "Hey Jarvis" (or a tap) at any time stops what Jarvis is saying or working on and pauses the
   music. While Jarvis is talking, the wake word needs a score of 0.8, so its own voice doesn't
