@@ -6,21 +6,26 @@ REPO=$(cd "$(dirname "$0")/.." && pwd)
 UNITS="$HOME/.config/systemd/user"
 J="$HOME/jarvis"
 
-for f in "$J/venv/bin/python" "$J/src/llama.cpp/build/bin/llama-server" "$J/src/whisper.cpp/build/bin/whisper-server" \
-         "$J/models/llm/jarvis-0.5b-v2-q4_0.gguf" "$J/models/whisper/ggml-tiny.en-q8_0.bin" \
+for f in "$J/venv/bin/python" "$J/src/llama.cpp/build/bin/llama-server" \
+         "$J/models/llm/jarvis-0.5b-v2-q4_0.gguf" "$J/models/moonshine/encoder_model.onnx" \
          "$J/models/wakeword/hey_jarvis_v0.1.onnx" "$J/models/piper/en_GB-alan-medium.onnx"; do
     [ -e "$f" ] || { echo "missing: $f (see docs/PLAN.md and training/README.md)"; exit 1; }
 done
 
 mkdir -p "$UNITS" "$HOME/.config/autostart"
-for unit in jarvis-llm jarvis-stt jarvis-mic-levels; do
+# speech to text now runs inside the assistant (Moonshine): retire the old whisper-server unit
+if [ -e "$UNITS/jarvis-stt.service" ] || [ -L "$UNITS/jarvis-stt.service" ]; then
+    systemctl --user disable --now jarvis-stt 2>/dev/null || true
+    rm -f "$UNITS/jarvis-stt.service"
+fi
+for unit in jarvis-llm jarvis-mic-levels; do
     ln -sf "$REPO/deploy/systemd/$unit.service" "$UNITS/$unit.service"
 done
 sed "s|@REPO@|$REPO|" "$REPO/deploy/systemd/jarvis.service" > "$UNITS/jarvis.service"
 
 systemctl --user daemon-reload
-systemctl --user enable jarvis-mic-levels jarvis-llm jarvis-stt jarvis
-systemctl --user restart jarvis-llm jarvis-stt jarvis
+systemctl --user enable jarvis-mic-levels jarvis-llm jarvis
+systemctl --user restart jarvis-llm jarvis
 
 chmod +x "$REPO/deploy/kiosk/jarvis-kiosk.sh"
 cat > "$HOME/.config/autostart/jarvis-kiosk.desktop" <<EOF

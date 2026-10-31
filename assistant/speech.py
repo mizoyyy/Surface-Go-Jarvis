@@ -1,41 +1,41 @@
-"""Speech to text (whisper-server) and text to speech (Piper, kept loaded)."""
+"""Speech to text (Moonshine, in process) and text to speech (Piper, kept loaded)."""
 
 import re
 import threading
 
-import httpx
+from . import audio, config, vocab
 
-from . import audio, config
+_stt = None
+_stt_lock = threading.Lock()
 
 
-PROMPT = "Hey Jarvis, what's the formula for kinetic energy?"
+def load_stt():
+    global _stt
+    with _stt_lock:
+        if _stt is None:
+            from .moonshine import Moonshine
+            _stt = Moonshine(config.MOONSHINE_DIR)
+    return _stt
 
 
 def transcribe(samples):
-    """Sends a 16 kHz int16 clip to whisper-server and returns the text."""
+    """A 16 kHz int16 clip -> text, with names from the word list put right."""
+    # the first half second is the end of "hey jarvis" and the chime: with it, Moonshine
+    # often returned nothing (7 of 20 recordings)
+    if len(samples) > audio.RATE:
+        samples = samples[audio.RATE // 2:]
     seconds = len(samples) / audio.RATE
-    # the encoder context must cover the clip, with headroom, or tiny.en repeats itself
-    audio_ctx = min(1500, max(320, int(50 * seconds + 200)))
-    r = httpx.post(config.STT_URL + "/inference", timeout=60, files={
-        "file": ("command.wav", audio.to_wav(samples), "audio/wav")},
-        # no temperature fallback: on a short noisy clip it retried for 30 s and still looped.
-        # max_tokens (patched into our whisper-server build) stops a loop after about two
-        # sentences instead of 224 tokens; the prompt teaches words tiny.en gets wrong
-        # ("formula" was heard as "form now" and "format")
-        data={"response_format": "json", "temperature": "0", "temperature_inc": "0",
-              "suppress_nst": "true", "audio_ctx": str(audio_ctx), "max_tokens": "32",
-              "prompt": PROMPT})
-    r.raise_for_status()
-    text = r.json().get("text", "")
-    text = re.sub(r"\[[^\]]*\]|\([^)]*\)|\*[^*]*\*", " ", text)  # [BLANK_AUDIO], (wind blowing)
+    text = load_stt().transcribe(samples)
+    text = re.sub(r"\[[^\]]*\]|\([^)]*\)|\*[^*]*\*", " ", text)  # [music], (wind blowing)
     text = drop_repeats(" ".join(text.split()))
-    if looping(text, seconds):
+    if looping(text, seconds) or not re.search(r"[a-zA-Z]{2}", text):  # "♪", "...", "x2"
         return ""
-    return text if re.search(r"[a-zA-Z]{2}", text) else ""  # "♪", "...", "x2"
+    names = [n for n in config.settings.get("vocabulary", []) if isinstance(n, str) and n.strip()]
+    return vocab.correct(text, names)
 
 
 def looping(text, seconds):
-    """tiny.en on a short or noisy clip: "I'm not going to be able to be able to be able to ..."."""
+    """A short or noisy clip: "I'm not going to be able to be able to be able to ..."."""
     words = re.findall(r"[\w']+", text.lower())
     if len(words) > 5 * seconds + 4:  # people say about 2.5 words a second
         return True
@@ -47,7 +47,7 @@ def looping(text, seconds):
 
 
 def drop_repeats(text):
-    """tiny.en sometimes loops: "What's my name? What's my name? What's my name?" -> once."""
+    """Speech models sometimes loop: "What's my name? What's my name? What's my name?" -> once."""
     sentences = re.findall(r"[^.?!]+[.?!]*", text)
     out = []
     for s in sentences:

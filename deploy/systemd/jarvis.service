@@ -1,7 +1,7 @@
 [Unit]
 Description=Jarvis voice assistant and UI server
-Wants=jarvis-llm.service jarvis-stt.service jarvis-mic-levels.service
-After=jarvis-llm.service jarvis-stt.service jarvis-mic-levels.service pipewire-pulse.service
+Wants=jarvis-llm.service jarvis-mic-levels.service
+After=jarvis-llm.service jarvis-mic-levels.service pipewire-pulse.service
 
 [Service]
 WorkingDirectory=@REPO@

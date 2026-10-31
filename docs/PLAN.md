@@ -21,7 +21,7 @@
 
 ## Phase 3: Voice pipeline (see docs/assistant.md)
 - [x] "Hey Jarvis" wake word (openWakeWord ONNX models on onnxruntime), end-of-speech detection,
-      STT (whisper-server, tiny.en q8_0), TTS (Piper, kept loaded)
+      STT (Moonshine base 8-bit, in process, with a word list), TTS (Piper, kept loaded)
 - [x] Orchestrator service with local/cloud routing (regex fast path, fine-tuned model, Claude fallback)
 - [ ] Live voice test at wall distance, tune wake sensitivity
 

@@ -309,6 +309,7 @@ function fillSettings() {
   $("#key-provider").textContent = providerName();
   $("#key-status").textContent = S.status.cloud_key ? "saved" : "not set";
   if (document.activeElement !== $("#cal-url")) $("#cal-url").value = s.calendar_ics_url;
+  if (document.activeElement !== $("#vocab")) $("#vocab").value = (s.vocabulary || []).join(", ");
   if (document.activeElement !== $("#sp-client")) $("#sp-client").value = s.spotify.client_id;
   if (document.activeElement !== $("#sp-device")) $("#sp-device").value = s.spotify.device_name;
   $("#sp-status").textContent = !S.status.spotify_connected ? "not connected"
@@ -385,6 +386,10 @@ $("#f-key").addEventListener("submit", (ev) => {
     .then(() => toast(`${providerName()} key saved`))
     .catch((e) => toast("Key not saved: " + e.message));
   $("#api-key").value = "";
+});
+$("#f-vocab").addEventListener("submit", (ev) => {
+  ev.preventDefault();
+  save({ vocabulary: $("#vocab").value.split(",").map((w) => w.trim()).filter(Boolean) }, "Word list saved");
 });
 $("#f-cal").addEventListener("submit", (ev) => { ev.preventDefault(); save({ calendar_ics_url: $("#cal-url").value.trim() }); });
 $("#f-sp").addEventListener("submit", (ev) => {
