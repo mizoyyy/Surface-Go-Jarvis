@@ -61,6 +61,10 @@ def _run(jarvis, name, args):
     if name == "prayer_times":
         from .prayer import prayer_times
         return prayer_times(**args, timers=timers)
+    if name in ("close_display", "stop_jarvis"):
+        jarvis.closing = name
+        return ("Closing the display. Tap the Jarvis icon to bring it back." if name == "close_display"
+                else "Turning off. Tap the Jarvis icon to start me again.")
     if name == "show_settings":
         jarvis.emit("show_settings", args["open"])
         return ""

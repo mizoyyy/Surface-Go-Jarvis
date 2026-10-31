@@ -153,6 +153,18 @@ def media(action: str):
     return {"ok": True}
 
 
+@app.post("/api/close")
+def close_display():
+    jarvis.close(stop=False)
+    return {"ok": True}
+
+
+@app.post("/api/turn-off")
+def turn_off():
+    jarvis.close(stop=True)
+    return {"ok": True}
+
+
 @app.get("/spotify/login")
 def spotify_login():
     if not jarvis.spotify.client_id:

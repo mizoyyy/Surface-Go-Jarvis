@@ -1,4 +1,5 @@
-"""Speaker volume (PipeWire through pactl) and the screen (X11 DPMS)."""
+"""Speaker volume (PipeWire through pactl), the screen (X11 DPMS), and closing Jarvis by touch or
+voice, since the wall tablet has no keyboard for Alt+F4."""
 
 import os
 import re
@@ -34,3 +35,15 @@ def screen(on):
     _run("xset", "dpms", "force", "on" if on else "off")
     if on:
         _run("xset", "s", "reset")
+
+
+def close_display():
+    """Closes the wall display window (title exactly "Jarvis"); Jarvis keeps listening."""
+    _run("wmctrl", "-F", "-c", "Jarvis")
+
+
+def stop_jarvis():
+    """Closes the display, then stops the model and this service (the Jarvis icon starts them)."""
+    close_display()
+    subprocess.Popen(["systemctl", "--user", "--no-block", "stop", "jarvis.service", "jarvis-llm.service"])
+

@@ -29,6 +29,10 @@ FAST = [
     (r"(set( the)? )?volume( to)? (\d{1,3})( percent|%)?", "set_volume", None),
     (r"(open|show)( me)?( the| your| my)? settings", "show_settings", {"open": True}),
     (r"(close|hide)( the| your| my)? settings", "show_settings", {"open": False}),
+    (r"(close|exit|quit|hide|minimi[sz]e)( the)?( jarvis| display| app| screen| window)|(go|back) to( the)? desktop",
+     "close_display", {}),
+    (r"(shut down|shutdown|turn off|switch off|power off) jarvis( completely)?|(shut|turn) yourself off",
+     "stop_jarvis", {}),
 ]
 FAST = [(re.compile(rf"^{pattern}$", re.I), name, args) for pattern, name, args in FAST]
 
